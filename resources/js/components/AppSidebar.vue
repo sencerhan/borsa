@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import {
+    CandlestickChart,
+    LayoutGrid,
+    Settings2,
+    Wallet,
+} from '@lucide/vue';
+import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
-import NavFooter from '@/components/NavFooter.vue';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -14,29 +20,43 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useI18n } from '@/composables/useI18n';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+const { t } = useI18n();
+const page = usePage();
+const isAdmin = computed(() => Boolean(page.props.auth.user?.is_admin));
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+const mainNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [
+        {
+            title: t('nav.dashboard'),
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+        {
+            title: t('nav.exchange'),
+            href: '/exchange',
+            icon: CandlestickChart,
+        },
+        {
+            title: t('nav.wallet'),
+            href: '/wallet',
+            icon: Wallet,
+        },
+    ];
+
+    if (isAdmin.value) {
+        items.push({
+            title: t('nav.market_settings'),
+            href: '/admin/markets',
+            icon: Settings2,
+        });
+    }
+
+    return items;
+});
 </script>
 
 <template>
@@ -58,7 +78,9 @@ const footerNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+            <div class="px-2 group-data-[collapsible=icon]:hidden">
+                <LanguageSwitcher />
+            </div>
             <NavUser />
         </SidebarFooter>
     </Sidebar>

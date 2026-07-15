@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import { CandlestickChart } from '@lucide/vue';
 </script>
 
 <template>
     <div
-        class="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground"
+        class="flex aspect-square size-8 items-center justify-center rounded-md bg-linear-to-br from-emerald-500 to-teal-600 text-white"
     >
-        <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
+        <CandlestickChart class="size-5" />
     </div>
     <div class="ml-1 grid flex-1 text-left text-sm">
         <span class="mb-0.5 truncate leading-tight font-semibold"
-            >Laravel Starter Kit</span
+            >BitKuruş Borsa</span
         >
     </div>
 </template>
