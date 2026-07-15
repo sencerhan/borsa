@@ -1,0 +1,29 @@
+{
+  "_info": "Bu dosyayı düzenleyerek subdomain'ler ekleyebilirsiniz",
+  "_examples": {
+    "api_folder": "{ \"subdomain\": \"api\", \"folder\": \"api\" }",
+    "main_project": "{ \"subdomain\": \"www\", \"folder\": null }",
+    "admin_panel": "{ \"subdomain\": \"admin\", \"folder\": \"admin-panel\" }"
+  },
+  "_usage": [
+    "1. Aşağıdaki _templates'i silin ve subdomains'e taşıyın",
+    "2. 'folder': null ise ana proje dizini kullanılır", 
+    "3. 'folder': 'klasor-adi' ise o klasör kullanılır",
+    "4. Dosyayı kaydettiğinizde otomatik oluşur"
+  ],
+  "_templates": [
+    {
+      "subdomain": "api",
+      "folder": "api"
+    },
+    {
+      "subdomain": "admin",
+      "folder": "admin"
+    },
+    {
+      "subdomain": "www",
+      "folder": null
+    }
+  ],
+  "subdomains": []
+}
