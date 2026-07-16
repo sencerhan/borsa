@@ -62,8 +62,8 @@ class MarketBotService
             }
 
         } catch (\Throwable $e) {
-            Log::error("Market bot tick hatası ({$market->symbol}): " . $e->getMessage(), [
-                'exception' => $e
+            Log::error("Market bot tick hatası ({$market->symbol}): ".$e->getMessage(), [
+                'exception' => $e,
             ]);
         }
     }
@@ -111,7 +111,7 @@ class MarketBotService
                 $this->orders->cancel($maker, $order->id);
             } catch (\Throwable $e) {
                 // Hataları logla ama devam et
-                Log::warning("Bot emri iptal edilemedi: " . $e->getMessage());
+                Log::warning('Bot emri iptal edilemedi: '.$e->getMessage());
             }
         }
     }
@@ -124,30 +124,30 @@ class MarketBotService
         }
 
         $volatility = (string) $market->bot_volatility; // Örn: 0.005000 (%0.5)
-        
+
         // Rastgele yön (-1 veya 1) ve oran
         $multiplier = random_int(0, 1) === 1 ? '1' : '-1';
         $randomFactor = (string) (random_int(0, 1000) / 1000); // 0 ile 1 arası
-        
+
         // Değişim miktarı = currentPrice * volatility * randomFactor * multiplier
         $change = BigMath::mul($currentPrice, $volatility);
         $change = BigMath::mul($change, $randomFactor);
         $change = BigMath::mul($change, $multiplier);
 
         $newPrice = BigMath::add($currentPrice, $change);
-        
+
         // Fiyatın sıfırın altına inmesini engelle
         if (BigMath::lte($newPrice, '0.000001')) {
             $newPrice = '0.000001';
         }
 
-        return number_format((float)$newPrice, $market->price_scale, '.', '');
+        return number_format((float) $newPrice, $market->price_scale, '.', '');
     }
 
     private function placeOrderBookDepth(User $maker, Market $market, string $refPrice): void
     {
         $baseSpread = (string) $market->bot_spread; // Örn: 0.010000 (%1.0)
-        
+
         // 3 farklı derinlik seviyesi oluşturalım
         $levels = [
             ['spread_mult' => '1.0', 'qty_mult' => '1.0'],
@@ -157,7 +157,7 @@ class MarketBotService
 
         foreach ($levels as $level) {
             $levelSpread = BigMath::mul($baseSpread, $level['spread_mult']);
-            
+
             // Fiyat adımlarını hesapla
             // Buy Price = refPrice * (1 - levelSpread)
             $buyPrice = BigMath::mul($refPrice, BigMath::sub('1', $levelSpread));
@@ -167,16 +167,16 @@ class MarketBotService
             // Rastgele miktarlar
             $minQty = (string) $market->bot_min_qty;
             $maxQty = (string) $market->bot_max_qty;
-            
+
             $diff = BigMath::sub($maxQty, $minQty);
             $randomPercent = (string) (random_int(0, 100) / 100);
             $qty = BigMath::add($minQty, BigMath::mul($diff, $randomPercent));
             $qty = BigMath::mul($qty, $level['qty_mult']);
 
             // Yuvarlamalar
-            $buyPriceStr = number_format((float)$buyPrice, $market->price_scale, '.', '');
-            $sellPriceStr = number_format((float)$sellPrice, $market->price_scale, '.', '');
-            $qtyStr = number_format((float)$qty, $market->size_scale, '.', '');
+            $buyPriceStr = number_format((float) $buyPrice, $market->price_scale, '.', '');
+            $sellPriceStr = number_format((float) $sellPrice, $market->price_scale, '.', '');
+            $qtyStr = number_format((float) $qty, $market->size_scale, '.', '');
 
             if (BigMath::isPositive($buyPriceStr) && BigMath::isPositive($qtyStr)) {
                 try {
@@ -188,7 +188,7 @@ class MarketBotService
                         quantity: $qtyStr
                     ));
                 } catch (\Throwable $e) {
-                    Log::warning("Bot limit alım emri veremedi: " . $e->getMessage());
+                    Log::warning('Bot limit alım emri veremedi: '.$e->getMessage());
                 }
             }
 
@@ -202,7 +202,7 @@ class MarketBotService
                         quantity: $qtyStr
                     ));
                 } catch (\Throwable $e) {
-                    Log::warning("Bot limit satım emri veremedi: " . $e->getMessage());
+                    Log::warning('Bot limit satım emri veremedi: '.$e->getMessage());
                 }
             }
         }
@@ -212,22 +212,22 @@ class MarketBotService
     {
         // Alıcı mı satıcı mı olacağını rastgele seç
         $side = random_int(0, 1) === 1 ? OrderSide::Buy : OrderSide::Sell;
-        
+
         // Küçük bir hacim belirle
         $minQty = (string) $market->bot_min_qty;
         $maxQty = BigMath::mul($minQty, '5'); // Min emrin maks 5 katı taker işlemi olsun
-        
+
         $diff = BigMath::sub($maxQty, $minQty);
         $randomPercent = (string) (random_int(0, 100) / 100);
         $qty = BigMath::add($minQty, BigMath::mul($diff, $randomPercent));
-        $qtyStr = number_format((float)$qty, $market->size_scale, '.', '');
+        $qtyStr = number_format((float) $qty, $market->size_scale, '.', '');
 
         try {
             if ($side === OrderSide::Buy) {
                 // Alıcı ise quoteAmount (USDT tutarı) hesaplanıp girilmeli çünkü market buy
                 // QuoteAmount = refPrice * qty
                 $quoteAmount = BigMath::mul($refPrice, $qtyStr);
-                $quoteAmountStr = number_format((float)$quoteAmount, $market->price_scale, '.', '');
+                $quoteAmountStr = number_format((float) $quoteAmount, $market->price_scale, '.', '');
 
                 if (BigMath::isPositive($quoteAmountStr)) {
                     $this->orders->place($taker, new PlaceOrderData(
@@ -250,7 +250,7 @@ class MarketBotService
             }
         } catch (\Throwable $e) {
             // Tahta boşsa veya bakiye yetersizse normaldir, sessizce geç
-            Log::debug("Bot taker işlemi başarısız: " . $e->getMessage());
+            Log::debug('Bot taker işlemi başarısız: '.$e->getMessage());
         }
     }
 }

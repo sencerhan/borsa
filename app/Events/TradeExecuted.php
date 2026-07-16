@@ -15,8 +15,10 @@ class TradeExecuted implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithQueue, SerializesModels;
 
+    /** @var array<string, mixed> */
     public array $trade;
 
+    /** @var array<string, mixed> */
     public array $ticker;
 
     public string $symbol;

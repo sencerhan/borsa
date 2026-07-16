@@ -28,7 +28,7 @@ const props = defineProps<{
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'Cüzdan', href: '/wallet' }],
+        breadcrumbs: [{ title: 'nav.wallet', href: '/wallet' }],
     },
 });
 
@@ -300,7 +300,16 @@ const totalAssets = computed(() => props.assets);
                             />
                         </div>
                         <!-- Domain hataları (ör. yetersiz bakiye) burada görünür -->
-                        <InputError :message="withdrawForm.errors.exchange" />
+                        <InputError
+                            :message="
+                                (
+                                    withdrawForm.errors as Record<
+                                        string,
+                                        string | undefined
+                                    >
+                                ).exchange
+                            "
+                        />
                         <Button
                             type="submit"
                             variant="outline"

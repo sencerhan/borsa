@@ -2,13 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Enums\LedgerEntryType;
-use App\Enums\OrderSide;
-use App\Enums\OrderType;
 use App\Models\Asset;
 use App\Models\Market;
 use App\Models\User;
-use App\Services\Data\PlaceOrderData;
 use App\Services\OrderService;
 use App\Services\WalletService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;

@@ -48,7 +48,7 @@ class DepositService
             $this->wallets->credit($deposit->user_id, $deposit->asset, $deposit->amount, LedgerEntryType::Deposit, $deposit);
 
             $deposit->status = DepositStatus::Completed;
-            $deposit->txid = '0x' . bin2hex(random_bytes(32));
+            $deposit->txid = '0x'.bin2hex(random_bytes(32));
             $deposit->processed_at = now();
             $deposit->save();
         });

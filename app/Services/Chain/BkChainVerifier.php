@@ -56,7 +56,7 @@ class BkChainVerifier implements ChainDepositVerifier
             $transfers[] = new IncomingTransfer(
                 txid: (string) $tokenId,
                 amount: (string) $value,
-                timestamp: isset($token['created_at']) ? strtotime((string) $token['created_at']) : null,
+                timestamp: isset($token['created_at']) ? (strtotime((string) $token['created_at']) ?: null) : null,
             );
         }
 

@@ -6,6 +6,7 @@ use App\Enums\LedgerEntryType;
 use App\Enums\OrderSide;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
+use App\Events\TradeExecuted;
 use App\Models\Market;
 use App\Models\Order;
 use App\Models\Trade;
@@ -156,7 +157,7 @@ class MatchingEngineService
             'seller_fee' => $sellerFee,
         ]);
 
-        event(new \App\Events\TradeExecuted($trade));
+        event(new TradeExecuted($trade));
 
         // Satıcının kilitli base'i borsadan çıkar → alıcıya (komisyon düşülmüş) base
         $this->wallets->debitLocked($sellOrder->user_id, $base, $fillQty, LedgerEntryType::Trade, $trade);

@@ -35,7 +35,7 @@ const userName = computed(() => page.props.auth.user?.name ?? '');
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'Dashboard', href: dashboard() }],
+        breadcrumbs: [{ title: 'nav.dashboard', href: dashboard() }],
     },
 });
 
@@ -48,9 +48,7 @@ const changePositive = computed(
 );
 
 const hasBalance = computed(() =>
-    props.wallets.some(
-        (w) => Number(w.available) > 0 || Number(w.locked) > 0,
-    ),
+    props.wallets.some((w) => Number(w.available) > 0 || Number(w.locked) > 0),
 );
 
 function statusLabel(status: string): string {
@@ -216,9 +214,7 @@ function sideLabel(side: string): string {
             <!-- Hızlı aksiyonlar -->
             <div class="flex flex-col gap-4">
                 <Link href="/exchange">
-                    <Card
-                        class="transition-colors hover:border-primary"
-                    >
+                    <Card class="transition-colors hover:border-primary">
                         <CardHeader>
                             <CandlestickChart class="size-6 text-primary" />
                             <CardTitle class="text-base">{{
@@ -232,8 +228,8 @@ function sideLabel(side: string): string {
                             <span
                                 class="inline-flex items-center gap-1 text-sm font-medium text-primary"
                                 >{{ t('dashboard.go_exchange') }}
-                                <ArrowRight class="size-4" /></span
-                            >
+                                <ArrowRight class="size-4"
+                            /></span>
                         </CardContent>
                     </Card>
                 </Link>
@@ -253,8 +249,8 @@ function sideLabel(side: string): string {
                             <span
                                 class="inline-flex items-center gap-1 text-sm font-medium text-primary"
                                 >{{ t('dashboard.go_wallet') }}
-                                <ArrowRight class="size-4" /></span
-                            >
+                                <ArrowRight class="size-4"
+                            /></span>
                         </CardContent>
                     </Card>
                 </Link>

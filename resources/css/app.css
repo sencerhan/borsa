@@ -6,8 +6,9 @@
 @source '../../storage/framework/views/*.php';
 
 @custom-variant dark (&:is(.dark *));
-a,button{
-    cursor:pointer;
+a,
+button {
+    cursor: pointer;
 }
 @theme inline {
     --font-sans:

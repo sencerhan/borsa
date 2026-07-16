@@ -17,6 +17,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $size_scale
  * @property string|null $last_price
  * @property bool $is_active
+ * @property bool $bot_active
+ * @property string $bot_reference_price
+ * @property string $bot_volatility
+ * @property string $bot_spread
+ * @property string $bot_min_qty
+ * @property string $bot_max_qty
+ * @property int $bot_interval
+ * @property bool $simulator_active
+ * @property int $simulator_interval
  */
 class Market extends Model
 {

@@ -12,8 +12,10 @@ class SystemStatsUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithQueue, SerializesModels;
 
+    /** @var array<string, mixed> */
     public array $stats;
 
+    /** @param array<string, mixed> $stats */
     public function __construct(array $stats)
     {
         $this->stats = $stats;

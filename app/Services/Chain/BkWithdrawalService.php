@@ -3,6 +3,8 @@
 namespace App\Services\Chain;
 
 use App\Exceptions\WithdrawalFailedException;
+use App\Models\ChainInternalToken;
+use App\Support\BigMath;
 use App\Support\BkKeypair;
 use App\Support\CanonicalJson;
 
@@ -19,9 +21,6 @@ use App\Support\CanonicalJson;
  */
 class BkWithdrawalService
 {
-    /** Para tutarlarında kullanılan ondalık hane sayısı. */
-    private const SCALE = 18;
-
     public function __construct(private readonly BkChainClient $client) {}
 
     /**
@@ -31,7 +30,7 @@ class BkWithdrawalService
      */
     /**
      * @param  ?callable  $onPaymentTxId  Ödeme (transfer/split) yayınlanmadan hemen önce
-     *                                     tx_id ile çağrılır (mutabakat için kayıt).
+     *                                    tx_id ile çağrılır (mutabakat için kayıt).
      */
     public function send(string $senderAddress, string $secretHex, string $recipient, string $amount, ?callable $onPaymentTxId = null): string
     {
@@ -43,19 +42,19 @@ class BkWithdrawalService
 
         // 1) Gönderilebilir token'ları büyükten küçüğe sırala, greedy seç.
         $tokens = $this->client->activeTokens($senderAddress);
-        usort($tokens, fn ($a, $b) => bccomp($b['value'], $a['value'], self::SCALE));
+        usort($tokens, fn ($a, $b) => BigMath::cmp($b['value'], $a['value']));
 
         $selected = [];
         $sum = '0';
         foreach ($tokens as $token) {
             $selected[] = $token;
-            $sum = bcadd($sum, $token['value'], self::SCALE);
-            if (bccomp($sum, $amount, self::SCALE) >= 0) {
+            $sum = BigMath::add($sum, $token['value']);
+            if (BigMath::gte($sum, $amount)) {
                 break;
             }
         }
 
-        if (bccomp($sum, $amount, self::SCALE) < 0) {
+        if (BigMath::lt($sum, $amount)) {
             throw WithdrawalFailedException::make('Zincirde yeterli bakiye yok (harcanabilir UTXO).');
         }
 
@@ -71,32 +70,37 @@ class BkWithdrawalService
         return $this->payFromSingle($input, $senderAddress, $secretHex, $recipient, $amount, $onPaymentTxId);
     }
 
-    /** Tek input'tan ödeme: transfer (tam) ya da split (change'li). */
+    /**
+     * Tek input'tan ödeme: transfer (tam) ya da split (change'li).
+     *
+     * @param  array{token_id: string, value: string, version: int}  $input
+     */
     private function payFromSingle(array $input, string $sender, string $secret, string $recipient, string $amount, ?callable $onTxId): string
     {
-        if (bccomp($input['value'], $amount, self::SCALE) === 0) {
+        if (BigMath::eq($input['value'], $amount)) {
             // transfer (1→1)
             $outputs = [
                 ['owner' => $recipient, 'token_id' => $this->newTokenId(), 'value' => $input['value']],
             ];
 
-            return $this->submitAndWait('transfer', $this->inputRef($input), $outputs, $sender, $secret, $onTxId);
+            return $this->submitAndWait('transfer', $this->inputRef([$input]), $outputs, $sender, $secret, $onTxId);
         }
 
         // split (1→2): alıcı + göndericiye para üstü
-        $change = bcsub($input['value'], $amount, self::SCALE);
+        $change = BigMath::sub($input['value'], $amount);
         $outputs = [
             ['owner' => $recipient, 'token_id' => $this->newTokenId(), 'value' => $amount],
             ['owner' => $sender, 'token_id' => $this->newTokenId(), 'value' => $change],
         ];
 
-        return $this->submitAndWait('split', $this->inputRef($input), $outputs, $sender, $secret, $onTxId);
+        return $this->submitAndWait('split', $this->inputRef([$input]), $outputs, $sender, $secret, $onTxId);
     }
 
     /**
      * Birden çok token'ı tek token'a birleştirir (göndericiye), commit bekler ve
      * yeni (merged) token'ı version'ıyla döndürür.
      *
+     * @param  array<int, array{token_id: string, value: string, version: int}>  $inputs
      * @return array{token_id: string, value: string, version: int}
      */
     private function merge(array $inputs, string $sender, string $secret, string $totalValue): array
@@ -118,7 +122,12 @@ class BkWithdrawalService
         throw WithdrawalFailedException::make('Merge sonrası birleşik token bulunamadı.');
     }
 
-    /** Payload'ı imzalar, gönderir ve committed olana kadar bekler; tx_id döndürür. */
+    /**
+     * Payload'ı imzalar, gönderir ve committed olana kadar bekler; tx_id döndürür.
+     *
+     * @param  array<int, array{token_id: string, version: int}>  $inputs
+     * @param  array<int, array{owner: string, token_id: string, value: string}>  $outputs
+     */
     private function submitAndWait(string $type, array $inputs, array $outputs, string $sender, string $secret, ?callable $onTxId = null): string
     {
         $txId = $this->newTxId();
@@ -137,7 +146,7 @@ class BkWithdrawalService
         // tekrar kredilemesin diye dahili olarak işaretle.
         foreach ($outputs as $output) {
             if ($output['owner'] === $sender) {
-                \App\Models\ChainInternalToken::mark('BK$', $output['token_id']);
+                ChainInternalToken::mark('BK$', $output['token_id']);
             }
         }
 
@@ -166,14 +175,13 @@ class BkWithdrawalService
     }
 
     /**
-     * Input token(lar)ını zincirin beklediği {token_id, version} biçimine indirger.
+     * Token listesini zincirin beklediği {token_id, version} biçimine indirger.
      *
+     * @param  array<int, array{token_id: string, value: string, version: int}>  $tokens
      * @return array<int, array{token_id: string, version: int}>
      */
-    private function inputRef(array $tokenOrTokens): array
+    private function inputRef(array $tokens): array
     {
-        $tokens = isset($tokenOrTokens['token_id']) ? [$tokenOrTokens] : $tokenOrTokens;
-
         return array_map(
             fn ($t) => ['token_id' => $t['token_id'], 'version' => $t['version']],
             $tokens,
@@ -182,7 +190,7 @@ class BkWithdrawalService
 
     private function money(string $value): string
     {
-        return bcadd($value, '0', self::SCALE);
+        return BigMath::add($value, '0');
     }
 
     private function newTokenId(): string

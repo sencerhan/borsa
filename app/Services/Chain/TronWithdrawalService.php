@@ -71,6 +71,10 @@ class TronWithdrawalService
         $recipientHex = substr(TronCrypto::toHex($recipientBase58), 2);
         $addressParam = str_pad($recipientHex, 64, '0', STR_PAD_LEFT);
 
+        if (! is_numeric($amount)) {
+            throw WithdrawalFailedException::make('Geçersiz USDT tutarı.');
+        }
+
         // Tutar: ondalık → tam sayı ham (10^decimals) → hex → 64 hex'e sola dolgu.
         $raw = bcmul($amount, bcpow('10', (string) $this->decimals), 0);
         $amountParam = str_pad($this->dec2hex($raw), 64, '0', STR_PAD_LEFT);
@@ -78,11 +82,14 @@ class TronWithdrawalService
         return $addressParam.$amountParam;
     }
 
-    /** Ondalık tam sayı string'ini hex'e çevirir (gmp'siz, bcmath ile). */
+    /**
+     * Ondalık tam sayı string'ini hex'e çevirir (gmp'siz, bcmath ile).
+     *
+     * @param  numeric-string  $dec
+     */
     private function dec2hex(string $dec): string
     {
-        $dec = ltrim($dec, '0');
-        if ($dec === '') {
+        if (bccomp($dec, '0') <= 0) {
             return '0';
         }
 

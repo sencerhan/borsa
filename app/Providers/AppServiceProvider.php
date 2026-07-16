@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Services\Chain\BkChainClient;
+use App\Services\Chain\TronChainClient;
+use App\Services\Chain\TronWithdrawalService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\DevCommands;
 use Illuminate\Support\Facades\Date;
@@ -17,18 +20,18 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // BK zincir istemcisi: taban URL config'den gelsin.
-        $this->app->bind(\App\Services\Chain\BkChainClient::class, fn () => new \App\Services\Chain\BkChainClient(
+        $this->app->bind(BkChainClient::class, fn () => new BkChainClient(
             (string) config('services.bitkurush.base_url'),
         ));
 
         // Tron zincir istemcisi + USDT çekim servisi (config'den).
-        $this->app->bind(\App\Services\Chain\TronChainClient::class, fn () => new \App\Services\Chain\TronChainClient(
+        $this->app->bind(TronChainClient::class, fn () => new TronChainClient(
             (string) config('services.trongrid.base_url'),
             config('services.trongrid.api_key'),
         ));
 
-        $this->app->bind(\App\Services\Chain\TronWithdrawalService::class, fn ($app) => new \App\Services\Chain\TronWithdrawalService(
-            $app->make(\App\Services\Chain\TronChainClient::class),
+        $this->app->bind(TronWithdrawalService::class, fn ($app) => new TronWithdrawalService(
+            $app->make(TronChainClient::class),
             (string) config('services.trongrid.usdt_contract'),
             (int) config('services.trongrid.fee_limit', 20000000),
             (int) config('services.trongrid.usdt_decimals', 6),

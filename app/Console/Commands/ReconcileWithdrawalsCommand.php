@@ -12,6 +12,7 @@ use Illuminate\Console\Command;
 class ReconcileWithdrawalsCommand extends Command
 {
     protected $signature = 'withdrawals:reconcile';
+
     protected $description = 'Yarıda kalan çekimleri zincir durumuna göre tamamlar veya iade eder.';
 
     public function handle(WithdrawalService $withdrawals): int

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Asset;
+use App\Models\ChainInternalToken;
 use App\Models\Deposit;
 use App\Models\User;
 use App\Models\Wallet;
@@ -129,7 +130,7 @@ class DepositVerificationTest extends TestCase
         $wallet = $this->bkWallet($address);
 
         // Çekim para üstü olarak borsanın kendi ürettiği token.
-        \App\Models\ChainInternalToken::mark('BK$', 'utxo-change');
+        ChainInternalToken::mark('BK$', 'utxo-change');
 
         Http::fake([
             'bitkurush.org/*' => Http::response([

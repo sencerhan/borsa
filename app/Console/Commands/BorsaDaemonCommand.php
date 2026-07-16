@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 class BorsaDaemonCommand extends Command
 {
     protected $signature = 'borsa:daemon {--delay=1 : Her döngü adımındaki bekleme süresi (saniye)}';
+
     protected $description = 'Borsa otonom işlem botlarını, yatırma/çekme simülatörünü ve kuyruk işlemlerini çalıştırır.';
 
     private bool $shouldKeepRunning = true;
@@ -100,7 +101,7 @@ class BorsaDaemonCommand extends Command
                     $simInterval = $market->simulator_interval ?: 30;
 
                     if ($now - $lastSimulatorRun >= $simInterval) {
-                        $this->line("<info>[SİMÜLATÖR]</info> tetikleniyor...");
+                        $this->line('<info>[SİMÜLATÖR]</info> tetikleniyor...');
                         $simulatorService->tick();
                         $lastSimulatorRun = $now;
                     }
@@ -129,6 +130,7 @@ class BorsaDaemonCommand extends Command
         }
 
         $this->components->info('BitKuruş Borsa Otonom Daemon başarıyla durduruldu.');
+
         return Command::SUCCESS;
     }
 }

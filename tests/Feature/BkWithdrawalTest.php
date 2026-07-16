@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\WithdrawalFailedException;
 use App\Services\Chain\BkChainClient;
 use App\Services\Chain\BkWithdrawalService;
 use App\Support\CanonicalJson;
@@ -160,7 +161,7 @@ class BkWithdrawalTest extends TestCase
     {
         $this->fakeChain([$this->token('tok-small', '2.000000000000000000')]);
 
-        $this->expectException(\App\Exceptions\WithdrawalFailedException::class);
+        $this->expectException(WithdrawalFailedException::class);
         $this->service()->send($this->sender, str_repeat('0', 128), $this->recipient, '5');
     }
 

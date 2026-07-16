@@ -1,0 +1,18 @@
+[Unit]
+Description=BitKurus Borsa autonomous daemon (deposit scan, withdrawal reconcile, queue, bots)
+After=network.target
+
+[Service]
+Type=simple
+# Adjust to your deployment user and path:
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/borsa
+ExecStart=/usr/bin/php artisan borsa:daemon --delay=2
+Restart=always
+RestartSec=5
+# Keep retrying even in a crash loop:
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=multi-user.target

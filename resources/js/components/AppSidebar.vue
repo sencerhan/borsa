@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import {
-    CandlestickChart,
-    LayoutGrid,
-    Settings2,
-    Wallet,
-} from '@lucide/vue';
+import { CandlestickChart, LayoutGrid, Settings2, Wallet } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';

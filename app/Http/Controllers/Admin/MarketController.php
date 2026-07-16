@@ -5,8 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateMarketRequest;
 use App\Models\Market;
+use App\Models\User;
+use App\Models\Wallet;
+use App\Services\Admin\MarketBotService;
 use App\Services\Admin\MarketSettingService;
+use App\Services\Admin\TransactionSimulatorService;
+use App\Services\DepositService;
+use App\Services\WithdrawalService;
+use App\Support\BigMath;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -57,51 +65,53 @@ class MarketController extends Controller
     /**
      * Piyasa Yapıcı Botunu bu market için anlık 1 kez çalıştırır.
      */
-    public function triggerBot(Market $market, \App\Services\Admin\MarketBotService $bots): RedirectResponse
+    public function triggerBot(Market $market, MarketBotService $bots): RedirectResponse
     {
         $bots->tick($market);
-        
+
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Piyasa yapıcı bot bu market için çalıştırıldı.']);
+
         return back();
     }
 
     /**
      * Test kullanıcısı için sahte bir para yatırma işlemi simüle eder.
      */
-    public function triggerMockDeposit(\App\Services\Admin\TransactionSimulatorService $simulator): RedirectResponse
+    public function triggerMockDeposit(TransactionSimulatorService $simulator): RedirectResponse
     {
-        $user = \App\Models\User::where('email', 'test@example.com')->first();
+        $user = User::where('email', 'test@example.com')->first();
         if ($user) {
             $asset = random_int(0, 1) === 1 ? 'USDT' : 'BK$';
             $amount = $asset === 'USDT' ? (string) random_int(100, 2000) : (string) random_int(5000, 100000);
-            
-            app(\App\Services\DepositService::class)->request($user, $asset, $amount);
+
+            app(DepositService::class)->request($user, $asset, $amount);
             $simulator->broadcastStats();
-            
+
             Inertia::flash('toast', ['type' => 'success', 'message' => "{$amount} {$asset} sahte yatırma talebi kuyruğa eklendi."]);
         } else {
             Inertia::flash('toast', ['type' => 'error', 'message' => 'Test kullanıcısı bulunamadı.']);
         }
+
         return back();
     }
 
     /**
      * Test kullanıcısı için sahte bir para çekme işlemi simüle eder.
      */
-    public function triggerMockWithdrawal(\App\Services\Admin\TransactionSimulatorService $simulator): RedirectResponse
+    public function triggerMockWithdrawal(TransactionSimulatorService $simulator): RedirectResponse
     {
-        $user = \App\Models\User::where('email', 'test@example.com')->first();
+        $user = User::where('email', 'test@example.com')->first();
         if ($user) {
             $asset = random_int(0, 1) === 1 ? 'USDT' : 'BK$';
-            $wallet = \App\Models\Wallet::where('user_id', $user->id)->where('asset', $asset)->first();
-            
-            if ($wallet && \App\Support\BigMath::gt($wallet->available, '50')) {
+            $wallet = Wallet::where('user_id', $user->id)->where('asset', $asset)->first();
+
+            if ($wallet && BigMath::gt($wallet->available, '50')) {
                 $amount = (string) random_int(10, 50);
-                $address = $asset === 'USDT' ? '0x' . bin2hex(random_bytes(20)) : 'bk1' . bin2hex(random_bytes(19));
-                
-                app(\App\Services\WithdrawalService::class)->request($user, $asset, $amount, $address);
+                $address = $asset === 'USDT' ? '0x'.bin2hex(random_bytes(20)) : 'bk1'.bin2hex(random_bytes(19));
+
+                app(WithdrawalService::class)->request($user, $asset, $amount, $address);
                 $simulator->broadcastStats();
-                
+
                 Inertia::flash('toast', ['type' => 'success', 'message' => "{$amount} {$asset} sahte çekim talebi kuyruğa eklendi."]);
             } else {
                 Inertia::flash('toast', ['type' => 'warning', 'message' => "Test kullanıcısının çekilebilir {$asset} bakiyesi yetersiz."]);
@@ -109,22 +119,24 @@ class MarketController extends Controller
         } else {
             Inertia::flash('toast', ['type' => 'error', 'message' => 'Test kullanıcısı bulunamadı.']);
         }
+
         return back();
     }
 
     /**
      * Kuyruktaki bekleyen tüm işleri hemen eritir (Artisan queue:work).
      */
-    public function processQueue(\App\Services\Admin\TransactionSimulatorService $simulator): RedirectResponse
+    public function processQueue(TransactionSimulatorService $simulator): RedirectResponse
     {
-        \Illuminate\Support\Facades\Artisan::call('queue:work', [
+        Artisan::call('queue:work', [
             '--once' => true,
-            '--stop-when-empty' => true
+            '--stop-when-empty' => true,
         ]);
-        
+
         $simulator->broadcastStats();
-        
+
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kuyruktaki bekleyen işler başarıyla işlendi.']);
+
         return back();
     }
 }

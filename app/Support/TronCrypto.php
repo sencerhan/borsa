@@ -15,13 +15,24 @@ final class TronCrypto
     /** @return array{private_key: string, address_hex: string, address_base58: string} */
     public static function generate(): array
     {
-        return self::run(['cmd' => 'keygen']);
+        $r = self::run(['cmd' => 'keygen']);
+
+        return [
+            'private_key' => (string) $r['private_key'],
+            'address_hex' => (string) $r['address_hex'],
+            'address_base58' => (string) $r['address_base58'],
+        ];
     }
 
     /** @return array{address_hex: string, address_base58: string} */
     public static function addressFromPrivate(string $privHex): array
     {
-        return self::run(['cmd' => 'address', 'priv' => $privHex]);
+        $r = self::run(['cmd' => 'address', 'priv' => $privHex]);
+
+        return [
+            'address_hex' => (string) $r['address_hex'],
+            'address_base58' => (string) $r['address_base58'],
+        ];
     }
 
     /** base58 Tron adresini 41+20 bayt hex'e çevirir. */

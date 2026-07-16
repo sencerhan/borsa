@@ -7,7 +7,6 @@ use App\Models\Asset;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
-use App\Services\WalletService;
 use App\Services\WithdrawalService;
 use App\Support\BkKeypair;
 use Illuminate\Foundation\Testing\RefreshDatabase;

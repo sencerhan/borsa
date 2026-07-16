@@ -6,6 +6,7 @@ use App\Enums\LedgerEntryType;
 use App\Enums\OrderSide;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
+use App\Events\OrderBookUpdated;
 use App\Exceptions\InvalidOrderException;
 use App\Exceptions\MarketInactiveException;
 use App\Exceptions\MarketNotFoundException;
@@ -70,7 +71,7 @@ class OrderService
             return $order->refresh();
         });
 
-        event(new \App\Events\OrderBookUpdated($order->market));
+        event(new OrderBookUpdated($order->market));
 
         return $order;
     }
@@ -103,7 +104,7 @@ class OrderService
             return $order;
         });
 
-        event(new \App\Events\OrderBookUpdated($order->market));
+        event(new OrderBookUpdated($order->market));
 
         return $order;
     }
@@ -185,6 +186,10 @@ class OrderService
     /** Değeri verilen ondalık haneye (market tick/lot) keserek indirger. */
     private function scaleDown(string $value, int $scale): string
     {
+        if (! is_numeric($value)) {
+            return '0';
+        }
+
         return bcadd($value, '0', max(0, $scale));
     }
 

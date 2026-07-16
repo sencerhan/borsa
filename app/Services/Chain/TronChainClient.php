@@ -20,7 +20,7 @@ class TronChainClient
     /**
      * TRC20 transfer için imzasız işlem oluşturur (triggersmartcontract).
      *
-     * @return array<string, mixed>|null  Oluşan transaction nesnesi (txID + raw_data) ya da null
+     * @return array<string, mixed>|null Oluşan transaction nesnesi (txID + raw_data) ya da null
      */
     public function buildTransfer(string $ownerHex, string $contractHex, string $paramHex, int $feeLimit): ?array
     {
@@ -58,7 +58,7 @@ class TronChainClient
         $message = $response->json('message');
 
         // TronGrid hata mesajı hex kodlu gelebilir.
-        if ($message !== null && ctype_xdigit($message)) {
+        if (is_string($message) && ctype_xdigit($message)) {
             $message = hex2bin($message) ?: $message;
         }
 

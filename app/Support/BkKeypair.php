@@ -34,6 +34,10 @@ final class BkKeypair
     {
         $secret = sodium_hex2bin($secretHex);
 
+        if ($secret === '') {
+            throw new \InvalidArgumentException('Boş Ed25519 özel anahtarı.');
+        }
+
         return bin2hex(sodium_crypto_sign_detached($message, $secret));
     }
 }

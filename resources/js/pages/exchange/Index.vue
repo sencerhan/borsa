@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { useEchoPublic, useEcho, useConnectionStatus } from '@laravel/echo-vue';
 import { LockKeyhole } from '@lucide/vue';
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import OpenOrders from '@/components/exchange/OpenOrders.vue';
@@ -9,7 +10,6 @@ import TradeHistory from '@/components/exchange/TradeHistory.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useI18n } from '@/composables/useI18n';
 import { formatNumber } from '@/lib/number';
-import { useEchoPublic, useEcho, useConnectionStatus } from '@laravel/echo-vue';
 import type {
     Market,
     Order,
@@ -32,7 +32,7 @@ const { t } = useI18n();
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'İşlem', href: '/exchange' }],
+        breadcrumbs: [{ title: 'nav.exchange', href: '/exchange' }],
     },
 });
 
@@ -56,12 +56,42 @@ const localMarket = ref(props.market);
 const localOpenOrders = ref([...props.openOrders]);
 
 // Sayfa geçişleri veya Inertia reload durumlarında senkronizasyon
-watch(() => props.orderBook, (val) => { localOrderBook.value = val; });
-watch(() => props.recentTrades, (val) => { localTrades.value = [...val]; });
-watch(() => props.ticker, (val) => { localTicker.value = val; });
-watch(() => props.wallets, (val) => { localWallets.value = [...val]; });
-watch(() => props.market, (val) => { localMarket.value = val; });
-watch(() => props.openOrders, (val) => { localOpenOrders.value = [...val]; });
+watch(
+    () => props.orderBook,
+    (val) => {
+        localOrderBook.value = val;
+    },
+);
+watch(
+    () => props.recentTrades,
+    (val) => {
+        localTrades.value = [...val];
+    },
+);
+watch(
+    () => props.ticker,
+    (val) => {
+        localTicker.value = val;
+    },
+);
+watch(
+    () => props.wallets,
+    (val) => {
+        localWallets.value = [...val];
+    },
+);
+watch(
+    () => props.market,
+    (val) => {
+        localMarket.value = val;
+    },
+);
+watch(
+    () => props.openOrders,
+    (val) => {
+        localOpenOrders.value = [...val];
+    },
+);
 
 // Reverb WebSockets Dinleyicileri
 if (props.market) {
@@ -69,38 +99,36 @@ if (props.market) {
     const marketChannel = `market.${props.market.symbol.replace(/[^a-zA-Z0-9]/g, '')}`;
 
     // 1. Emir Defteri ve Ticker Güncellemeleri
-    useEchoPublic(
-        marketChannel,
-        'orderbook.updated',
-        (payload: any) => {
-            if (payload.symbol === props.market?.symbol) {
-                localOrderBook.value = payload.orderBook;
-                localTicker.value = payload.ticker;
-                if (localMarket.value) {
-                    localMarket.value.last_price = payload.ticker.last;
-                }
+    useEchoPublic(marketChannel, 'orderbook.updated', (payload: any) => {
+        if (payload.symbol === props.market?.symbol) {
+            localOrderBook.value = payload.orderBook;
+            localTicker.value = payload.ticker;
+
+            if (localMarket.value) {
+                localMarket.value.last_price = payload.ticker.last;
             }
         }
-    );
+    });
 
     // 2. Yeni Eşleşme (İşlem) ve Ticker Güncellemeleri
-    useEchoPublic(
-        marketChannel,
-        'trade.executed',
-        (payload: any) => {
-            if (payload.symbol === props.market?.symbol) {
-                localTrades.value = [payload.trade, ...localTrades.value].slice(0, 50);
-                localTicker.value = payload.ticker;
-                if (localMarket.value) {
-                    localMarket.value.last_price = payload.trade.price;
-                }
-                // Açık emirleri sessizce reload et
-                if (userId.value) {
-                    router.reload({ only: ['openOrders'], preserveScroll: true });
-                }
+    useEchoPublic(marketChannel, 'trade.executed', (payload: any) => {
+        if (payload.symbol === props.market?.symbol) {
+            localTrades.value = [payload.trade, ...localTrades.value].slice(
+                0,
+                50,
+            );
+            localTicker.value = payload.ticker;
+
+            if (localMarket.value) {
+                localMarket.value.last_price = payload.trade.price;
+            }
+
+            // Açık emirleri sessizce reload et
+            if (userId.value) {
+                router.reload({ only: ['openOrders'] });
             }
         }
-    );
+    });
 }
 
 // 3. Kullanıcı Cüzdan Değişim Dinleyicisi (Özel Kanal)
@@ -112,20 +140,24 @@ watch(
                 `user.${id}`,
                 'wallet.updated',
                 (payload: any) => {
-                    const idx = localWallets.value.findIndex(w => w.asset === payload.asset);
+                    const idx = localWallets.value.findIndex(
+                        (w) => w.asset === payload.asset,
+                    );
+
                     if (idx !== -1) {
                         localWallets.value[idx].available = payload.available;
                         localWallets.value[idx].locked = payload.locked;
                     }
+
                     // Cüzdan değiştiğinde açık emirleri de senkronize et
-                    router.reload({ only: ['openOrders'], preserveScroll: true });
+                    router.reload({ only: ['openOrders'] });
                 },
                 [],
-                'private'
+                'private',
             );
         }
     },
-    { immediate: true }
+    { immediate: true },
 );
 
 // Canlı veri için yedek yavaş yenileme (polling)
@@ -146,7 +178,6 @@ onMounted(() => {
                 'wallets',
                 'market',
             ],
-            preserveScroll: true,
         });
     }, 15000); // 15 saniyede bir yedek senkronizasyon (Reverb aktif olduğu için yükü azalttık)
 });
@@ -189,13 +220,15 @@ const changePositive = () =>
             >
                 <div>
                     <p class="text-lg font-bold">{{ localMarket.symbol }}</p>
-                    <p class="text-xs text-muted-foreground">BitKuruş / Tether</p>
+                    <p class="text-xs text-muted-foreground">
+                        BitKuruş / Tether
+                    </p>
                 </div>
                 <div>
                     <p class="text-xs text-muted-foreground">
                         {{ t('exchange.last_price') }}
                     </p>
-                    <p class="text-lg font-semibold font-mono">
+                    <p class="font-mono text-lg font-semibold">
                         {{
                             localMarket.last_price
                                 ? formatNumber(
@@ -211,7 +244,7 @@ const changePositive = () =>
                         {{ t('exchange.change_24h') }}
                     </p>
                     <p
-                        class="font-medium font-mono"
+                        class="font-mono font-medium"
                         :class="
                             localTicker?.change_percent == null
                                 ? 'text-muted-foreground'
@@ -231,23 +264,35 @@ const changePositive = () =>
                     <p class="text-xs text-muted-foreground">
                         {{ t('exchange.high_24h') }}
                     </p>
-                    <p class="font-medium font-mono text-foreground/90">
-                        {{ formatNumber(localTicker?.high, localMarket.price_scale) }}
+                    <p class="font-mono font-medium text-foreground/90">
+                        {{
+                            formatNumber(
+                                localTicker?.high,
+                                localMarket.price_scale,
+                            )
+                        }}
                     </p>
                 </div>
                 <div>
                     <p class="text-xs text-muted-foreground">
                         {{ t('exchange.low_24h') }}
                     </p>
-                    <p class="font-medium font-mono text-foreground/90">
-                        {{ formatNumber(localTicker?.low, localMarket.price_scale) }}
+                    <p class="font-mono font-medium text-foreground/90">
+                        {{
+                            formatNumber(
+                                localTicker?.low,
+                                localMarket.price_scale,
+                            )
+                        }}
                     </p>
                 </div>
                 <div>
                     <p class="text-xs text-muted-foreground">
-                        {{ t('exchange.volume_24h') }} ({{ localMarket.base_asset }})
+                        {{ t('exchange.volume_24h') }} ({{
+                            localMarket.base_asset
+                        }})
                     </p>
-                    <p class="font-medium font-mono text-foreground/90">
+                    <p class="font-mono font-medium text-foreground/90">
                         {{ formatNumber(localTicker?.volume, 2) }}
                     </p>
                 </div>
@@ -255,28 +300,41 @@ const changePositive = () =>
                 <!-- Reverb Canlı Bağlantı Durumu Göstergesi -->
                 <div class="ml-auto flex items-center">
                     <div
-                        class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all duration-300"
+                        class="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all duration-300"
                         :class="{
-                            'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400': connectionStatus === 'connected',
-                            'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse': connectionStatus === 'connecting',
-                            'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400': connectionStatus === 'disconnected'
+                            'border-green-500/20 bg-green-500/10 text-green-600 dark:text-green-400':
+                                connectionStatus === 'connected',
+                            'animate-pulse border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400':
+                                connectionStatus === 'connecting',
+                            'border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400':
+                                connectionStatus === 'disconnected',
                         }"
                     >
                         <span class="relative flex h-1.5 w-1.5">
                             <span
                                 v-if="connectionStatus === 'connected'"
-                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+                                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"
                             ></span>
                             <span
-                                class="relative inline-flex rounded-full h-1.5 w-1.5"
+                                class="relative inline-flex h-1.5 w-1.5 rounded-full"
                                 :class="{
-                                    'bg-green-500': connectionStatus === 'connected',
-                                    'bg-amber-500': connectionStatus === 'connecting',
-                                    'bg-red-500': connectionStatus === 'disconnected'
+                                    'bg-green-500':
+                                        connectionStatus === 'connected',
+                                    'bg-amber-500':
+                                        connectionStatus === 'connecting',
+                                    'bg-red-500':
+                                        connectionStatus === 'disconnected',
                                 }"
                             ></span>
                         </span>
-                        Reverb: {{ connectionStatus === 'connected' ? 'Canlı' : connectionStatus === 'connecting' ? 'Bağlanıyor' : 'Bağlantı Yok' }}
+                        Reverb:
+                        {{
+                            connectionStatus === 'connected'
+                                ? 'Canlı'
+                                : connectionStatus === 'connecting'
+                                  ? 'Bağlanıyor'
+                                  : 'Bağlantı Yok'
+                        }}
                     </div>
                 </div>
             </CardContent>

@@ -165,9 +165,7 @@ function submit(): void {
             <!-- Fiyat (limit) -->
             <div v-if="isLimit" class="grid gap-1.5">
                 <Label for="price"
-                    >{{ t('common.price') }} ({{
-                        market.quote_asset
-                    }})</Label
+                    >{{ t('common.price') }} ({{ market.quote_asset }})</Label
                 >
                 <Input
                     id="price"
@@ -184,9 +182,7 @@ function submit(): void {
             <!-- Miktar (market alış hariç) -->
             <div v-if="!isMarketBuy" class="grid gap-1.5">
                 <Label for="quantity"
-                    >{{ t('common.quantity') }} ({{
-                        market.base_asset
-                    }})</Label
+                    >{{ t('common.quantity') }} ({{ market.base_asset }})</Label
                 >
                 <Input
                     id="quantity"
@@ -203,9 +199,7 @@ function submit(): void {
             <!-- Tutar (market alış) -->
             <div v-else class="grid gap-1.5">
                 <Label for="quote_amount"
-                    >{{ t('common.amount') }} ({{
-                        market.quote_asset
-                    }})</Label
+                    >{{ t('common.amount') }} ({{ market.quote_asset }})</Label
                 >
                 <Input
                     id="quote_amount"

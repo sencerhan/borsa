@@ -75,7 +75,9 @@ const features = [
                         <CandlestickChart class="size-5" />
                     </div>
                     <span class="text-lg font-bold tracking-tight"
-                        >BitKuruş<span class="text-emerald-500">Borsa</span></span
+                        >BitKuruş<span class="text-emerald-500"
+                            >Borsa</span
+                        ></span
                     >
                 </div>
 
@@ -226,10 +228,9 @@ const features = [
                                 </p>
                                 <div class="space-y-1">
                                     <div
-                                        v-for="(bid, i) in orderBook?.bids?.slice(
-                                            0,
-                                            5,
-                                        ) ?? []"
+                                        v-for="(
+                                            bid, i
+                                        ) in orderBook?.bids?.slice(0, 5) ?? []"
                                         :key="`b-${i}`"
                                         class="relative flex justify-between overflow-hidden rounded px-2 py-1"
                                     >
@@ -269,10 +270,9 @@ const features = [
                                 </p>
                                 <div class="space-y-1">
                                     <div
-                                        v-for="(ask, i) in orderBook?.asks?.slice(
-                                            0,
-                                            5,
-                                        ) ?? []"
+                                        v-for="(
+                                            ask, i
+                                        ) in orderBook?.asks?.slice(0, 5) ?? []"
                                         :key="`a-${i}`"
                                         class="relative flex justify-between overflow-hidden rounded px-2 py-1"
                                     >
@@ -310,7 +310,9 @@ const features = [
                             class="mt-4 grid grid-cols-3 gap-2 border-t border-neutral-200 pt-4 text-center text-xs dark:border-white/10"
                         >
                             <div>
-                                <p class="text-neutral-500 dark:text-neutral-400">
+                                <p
+                                    class="text-neutral-500 dark:text-neutral-400"
+                                >
                                     {{ t('landing.high_24h') }}
                                 </p>
                                 <p class="font-semibold">
@@ -323,7 +325,9 @@ const features = [
                                 </p>
                             </div>
                             <div>
-                                <p class="text-neutral-500 dark:text-neutral-400">
+                                <p
+                                    class="text-neutral-500 dark:text-neutral-400"
+                                >
                                     {{ t('landing.low_24h') }}
                                 </p>
                                 <p class="font-semibold">
@@ -336,7 +340,9 @@ const features = [
                                 </p>
                             </div>
                             <div>
-                                <p class="text-neutral-500 dark:text-neutral-400">
+                                <p
+                                    class="text-neutral-500 dark:text-neutral-400"
+                                >
                                     {{ t('landing.volume_24h') }}
                                 </p>
                                 <p class="font-semibold">

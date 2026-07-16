@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Enums\DepositStatus;
 use App\Enums\LedgerEntryType;
+use App\Models\Asset;
+use App\Models\ChainInternalToken;
 use App\Models\Deposit;
 use App\Models\Wallet;
 use App\Services\Chain\BkChainVerifier;
@@ -69,7 +71,7 @@ class DepositVerificationService
             }
 
             // Borsanın kendi ürettiği token (çekim para üstü / merge çıktısı) yatırma değildir.
-            if (\App\Models\ChainInternalToken::isInternal($wallet->asset, $transfer->txid)) {
+            if (ChainInternalToken::isInternal($wallet->asset, $transfer->txid)) {
                 continue;
             }
 
@@ -123,7 +125,7 @@ class DepositVerificationService
     /** Varlığın ağına göre uygun zincir doğrulayıcısını üretir (yoksa null). */
     private function verifierForAsset(string $asset): ?ChainDepositVerifier
     {
-        $network = \App\Models\Asset::where('symbol', $asset)->value('network');
+        $network = Asset::where('symbol', $asset)->value('network');
 
         return match ($network) {
             'BK Chain' => new BkChainVerifier(

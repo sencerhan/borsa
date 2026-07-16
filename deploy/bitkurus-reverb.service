@@ -1,0 +1,17 @@
+[Unit]
+Description=BitKurus Borsa Reverb WebSocket server (live order book / trades / wallet)
+After=network.target
+
+[Service]
+Type=simple
+# Adjust to your deployment user and path:
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/borsa
+ExecStart=/usr/bin/php artisan reverb:start
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=multi-user.target

@@ -22,7 +22,7 @@ const props = defineProps<{
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'Market Ayarları', href: '/admin/markets' }],
+        breadcrumbs: [{ title: 'nav.market_settings', href: '/admin/markets' }],
     },
 });
 
@@ -109,9 +109,9 @@ function submit(
                         </label>
                     </div>
                     <div class="sm:col-span-2">
-                        <Button type="submit" :disabled="form.processing"
-                            >{{ t('common.save') }}</Button
-                        >
+                        <Button type="submit" :disabled="form.processing">{{
+                            t('common.save')
+                        }}</Button>
                     </div>
                 </form>
             </CardContent>

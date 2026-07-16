@@ -11,7 +11,12 @@ use App\Support\BigMath;
 class MarketSettingService
 {
     /**
-     * @param  array{maker_fee?: string, taker_fee?: string, min_order_size?: string, is_active?: bool}  $data
+     * @param  array{
+     *     maker_fee?: string, taker_fee?: string, min_order_size?: string, is_active?: bool,
+     *     bot_active?: bool, bot_reference_price?: string, bot_volatility?: string, bot_spread?: string,
+     *     bot_min_qty?: string, bot_max_qty?: string, bot_interval?: int,
+     *     simulator_active?: bool, simulator_interval?: int
+     * }  $data
      */
     public function update(Market $market, array $data): Market
     {
@@ -30,11 +35,11 @@ class MarketSettingService
         }
 
         if (array_key_exists('is_active', $data)) {
-            $market->is_active = (bool)$data['is_active'];
+            $market->is_active = (bool) $data['is_active'];
         }
 
         if (array_key_exists('bot_active', $data)) {
-            $market->bot_active = (bool)$data['bot_active'];
+            $market->bot_active = (bool) $data['bot_active'];
         }
 
         if (isset($data['bot_reference_price'])) {
@@ -60,15 +65,15 @@ class MarketSettingService
         }
 
         if (isset($data['bot_interval'])) {
-            $market->bot_interval = (int)$data['bot_interval'];
+            $market->bot_interval = (int) $data['bot_interval'];
         }
 
         if (array_key_exists('simulator_active', $data)) {
-            $market->simulator_active = (bool)$data['simulator_active'];
+            $market->simulator_active = (bool) $data['simulator_active'];
         }
 
         if (isset($data['simulator_interval'])) {
-            $market->simulator_interval = (int)$data['simulator_interval'];
+            $market->simulator_interval = (int) $data['simulator_interval'];
         }
 
         $market->save();

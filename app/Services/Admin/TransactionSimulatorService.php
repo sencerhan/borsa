@@ -34,16 +34,17 @@ class TransactionSimulatorService
     {
         // Aktif simülatör ayarı olan market var mı?
         $activeSimulatorMarket = Market::where('simulator_active', true)->where('is_active', true)->first();
-        
+
         if ($activeSimulatorMarket === null) {
             $this->broadcastStats();
+
             return;
         }
 
         try {
             // Test kullanıcısını bul (sadece test@example.com üzerinden veya rastgele user)
             $user = User::where('email', 'test@example.com')->first();
-            
+
             if ($user !== null) {
                 $rand = random_int(1, 100);
 
@@ -56,7 +57,7 @@ class TransactionSimulatorService
                 }
             }
         } catch (\Throwable $e) {
-            Log::error("Yatırma/Çekme Simülatör hatası: " . $e->getMessage());
+            Log::error('Yatırma/Çekme Simülatör hatası: '.$e->getMessage());
         }
 
         // Güncel istatistikleri Reverb üzerinden admin paneline yolla
@@ -66,7 +67,7 @@ class TransactionSimulatorService
     private function simulateDeposit(User $user): void
     {
         $asset = random_int(0, 1) === 1 ? 'USDT' : 'BK$';
-        
+
         // Rastgele tutar üret
         if ($asset === 'USDT') {
             $amount = (string) random_int(50, 1000);
@@ -80,22 +81,22 @@ class TransactionSimulatorService
     private function simulateWithdrawal(User $user): void
     {
         $asset = random_int(0, 1) === 1 ? 'USDT' : 'BK$';
-        
+
         // Kullanıcının cüzdan bakiyesini kontrol et
         $wallet = Wallet::where('user_id', $user->id)->where('asset', $asset)->first();
-        
+
         if ($wallet === null || BigMath::lte($wallet->available, '50.000000')) {
             return;
         }
 
         // Bakiyesinin küçük bir kısmını çek (maks %10)
         $maxWithdraw = BigMath::div($wallet->available, '10');
-        $amountVal = random_int(10, max(20, (int)floatval($maxWithdraw)));
+        $amountVal = random_int(10, max(20, (int) floatval($maxWithdraw)));
         $amount = (string) $amountVal;
-        
-        $address = $asset === 'USDT' 
-            ? '0x' . bin2hex(random_bytes(20))
-            : 'bk1' . bin2hex(random_bytes(19));
+
+        $address = $asset === 'USDT'
+            ? '0x'.bin2hex(random_bytes(20))
+            : 'bk1'.bin2hex(random_bytes(19));
 
         $this->withdrawals->request($user, $asset, $amount, $address);
     }
@@ -104,9 +105,9 @@ class TransactionSimulatorService
     {
         try {
             $pendingJobs = DB::table('jobs')->count();
-            
+
             $today = now()->startOfDay();
-            
+
             $completedDeposits = Deposit::where('status', DepositStatus::Completed)
                 ->where('processed_at', '>=', $today)
                 ->count();
@@ -125,7 +126,7 @@ class TransactionSimulatorService
             event(new SystemStatsUpdated($stats));
         } catch (\Throwable $e) {
             // Hata olursa sessizce logla
-            Log::debug("İstatistik yayınlanamadı: " . $e->getMessage());
+            Log::debug('İstatistik yayınlanamadı: '.$e->getMessage());
         }
     }
 }

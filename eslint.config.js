@@ -80,6 +80,8 @@ export default defineConfigWithVueTs(
             'bootstrap/ssr',
             'tailwind.config.js',
             'vite.config.ts',
+            // Node CommonJS yardımcısı (Tron imzalama) — frontend değil
+            'scripts/**',
             'resources/js/actions/**',
             'resources/js/components/ui/*',
             'resources/js/routes/**',

@@ -20,22 +20,34 @@ const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
 function base58(buf) {
     let zeros = 0;
-    while (zeros < buf.length && buf[zeros] === 0) zeros++;
+
+    while (zeros < buf.length && buf[zeros] === 0) {
+zeros++;
+}
+
     const digits = [0];
+
     for (let i = 0; i < buf.length; i++) {
         let carry = buf[i];
+
         for (let j = 0; j < digits.length; j++) {
             carry += digits[j] << 8;
             digits[j] = carry % 58;
             carry = (carry / 58) | 0;
         }
+
         while (carry > 0) {
             digits.push(carry % 58);
             carry = (carry / 58) | 0;
         }
     }
+
     let out = '1'.repeat(zeros);
-    for (let i = digits.length - 1; i >= 0; i--) out += B58[digits[i]];
+
+    for (let i = digits.length - 1; i >= 0; i--) {
+out += B58[digits[i]];
+}
+
     return out;
 }
 
@@ -43,28 +55,43 @@ function base58Check(hex21) {
     const payload = Buffer.from(hex21, 'hex');
     const h1 = crypto.createHash('sha256').update(payload).digest();
     const h2 = crypto.createHash('sha256').update(h1).digest();
+
     return base58(Buffer.concat([payload, h2.subarray(0, 4)]));
 }
 
 /** base58 string -> byte dizisi */
 function base58Decode(str) {
     const bytes = [0];
+
     for (const ch of str) {
         let carry = B58.indexOf(ch);
-        if (carry < 0) throw new Error('gecersiz base58');
+
+        if (carry < 0) {
+throw new Error('gecersiz base58');
+}
+
         for (let j = 0; j < bytes.length; j++) {
             carry += bytes[j] * 58;
             bytes[j] = carry & 0xff;
             carry >>= 8;
         }
+
         while (carry > 0) {
             bytes.push(carry & 0xff);
             carry >>= 8;
         }
     }
+
     let zeros = 0;
-    while (zeros < str.length && str[zeros] === '1') zeros++;
-    for (let i = 0; i < zeros; i++) bytes.push(0);
+
+    while (zeros < str.length && str[zeros] === '1') {
+zeros++;
+}
+
+    for (let i = 0; i < zeros; i++) {
+bytes.push(0);
+}
+
     return Buffer.from(bytes.reverse());
 }
 
@@ -72,6 +99,7 @@ function base58Decode(str) {
 function toHex(base58Addr) {
     const decoded = base58Decode(base58Addr);
     const payload = decoded.subarray(0, decoded.length - 4); // son 4 checksum
+
     return { address_hex: payload.toString('hex') };
 }
 
@@ -83,12 +111,14 @@ function addressFromPrivate(privHex) {
     const hash = keccak256(pub); // 32 bayt hex
     const addr20 = hash.slice(-40); // son 20 bayt
     const addressHex = '41' + addr20; // Tron mainnet ön eki
+
     return { address_hex: addressHex, address_base58: base58Check(addressHex) };
 }
 
 function keygen() {
     const key = ec.genKeyPair();
     const priv = key.getPrivate('hex').padStart(64, '0');
+
     return { private_key: priv, ...addressFromPrivate(priv) };
 }
 
@@ -99,6 +129,7 @@ function sign(privHex, hashHex) {
     const r = sig.r.toString('hex').padStart(64, '0');
     const s = sig.s.toString('hex').padStart(64, '0');
     const v = sig.recoveryParam.toString(16).padStart(2, '0');
+
     return { signature: r + s + v };
 }
 

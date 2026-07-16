@@ -12,6 +12,7 @@ use Illuminate\Console\Command;
 class ScanDepositsCommand extends Command
 {
     protected $signature = 'deposits:scan';
+
     protected $description = 'Zincirden gelen (BK$/USDT) yatırmaları doğrular ve cüzdanlara işler.';
 
     public function handle(DepositVerificationService $verifier): int

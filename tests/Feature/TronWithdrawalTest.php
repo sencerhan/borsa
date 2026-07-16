@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\WithdrawalFailedException;
 use App\Services\Chain\TronChainClient;
 use App\Services\Chain\TronWithdrawalService;
 use App\Support\TronCrypto;
@@ -81,7 +82,7 @@ class TronWithdrawalTest extends TestCase
             ]),
         ]);
 
-        $this->expectException(\App\Exceptions\WithdrawalFailedException::class);
+        $this->expectException(WithdrawalFailedException::class);
         $this->service()->send($hot['private_key'], $hot['address_base58'], $recipient, '1');
     }
 }

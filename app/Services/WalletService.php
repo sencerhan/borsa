@@ -3,12 +3,16 @@
 namespace App\Services;
 
 use App\Enums\LedgerEntryType;
+use App\Events\WalletUpdated;
 use App\Exceptions\InsufficientBalanceException;
 use App\Models\Asset;
 use App\Models\LedgerEntry;
 use App\Models\Wallet;
 use App\Support\BigMath;
+use App\Support\BkKeypair;
+use App\Support\TronCrypto;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
 
 /**
  * Bakiye mutasyonlarının tek kapısı. Tüm metodlar bir DB transaction
@@ -48,25 +52,33 @@ class WalletService
         };
     }
 
-    /** BK Chain için anahtar çifti üretir; özel anahtarı şifreleyerek döndürür. */
+    /**
+     * BK Chain için anahtar çifti üretir; özel anahtarı şifreleyerek döndürür.
+     *
+     * @return array{deposit_address: string, deposit_secret: string}
+     */
     private function bkCredentials(): array
     {
-        $keypair = \App\Support\BkKeypair::generate();
+        $keypair = BkKeypair::generate();
 
         return [
             'deposit_address' => $keypair['address'],
-            'deposit_secret' => \Illuminate\Support\Facades\Crypt::encryptString($keypair['secret']),
+            'deposit_secret' => Crypt::encryptString($keypair['secret']),
         ];
     }
 
-    /** TRON için secp256k1 anahtar çifti üretir; özel anahtarı şifreleyerek döndürür. */
+    /**
+     * TRON için secp256k1 anahtar çifti üretir; özel anahtarı şifreleyerek döndürür.
+     *
+     * @return array{deposit_address: string, deposit_secret: string}
+     */
     private function tronCredentials(): array
     {
-        $keypair = \App\Support\TronCrypto::generate();
+        $keypair = TronCrypto::generate();
 
         return [
             'deposit_address' => $keypair['address_base58'],
-            'deposit_secret' => \Illuminate\Support\Facades\Crypt::encryptString($keypair['private_key']),
+            'deposit_secret' => Crypt::encryptString($keypair['private_key']),
         ];
     }
 
@@ -91,7 +103,7 @@ class WalletService
         $wallet->available = BigMath::add($wallet->available, $amount);
         $wallet->save();
 
-        event(new \App\Events\WalletUpdated($wallet));
+        event(new WalletUpdated($wallet));
 
         $this->record($wallet, $type, $amount, $reference);
 
@@ -111,7 +123,7 @@ class WalletService
         $wallet->available = BigMath::sub($wallet->available, $amount);
         $wallet->save();
 
-        event(new \App\Events\WalletUpdated($wallet));
+        event(new WalletUpdated($wallet));
 
         $this->record($wallet, $type, BigMath::mul($amount, '-1'), $reference);
 
@@ -132,7 +144,7 @@ class WalletService
         $wallet->locked = BigMath::add($wallet->locked, $amount);
         $wallet->save();
 
-        event(new \App\Events\WalletUpdated($wallet));
+        event(new WalletUpdated($wallet));
 
         $this->record($wallet, LedgerEntryType::Lock, BigMath::mul($amount, '-1'), $reference);
 
@@ -154,7 +166,7 @@ class WalletService
         $wallet->available = BigMath::add($wallet->available, $unlockAmount);
         $wallet->save();
 
-        event(new \App\Events\WalletUpdated($wallet));
+        event(new WalletUpdated($wallet));
 
         $this->record($wallet, $type, $unlockAmount, $reference);
 
@@ -174,7 +186,7 @@ class WalletService
         $wallet->locked = BigMath::sub($wallet->locked, $amount);
         $wallet->save();
 
-        event(new \App\Events\WalletUpdated($wallet));
+        event(new WalletUpdated($wallet));
 
         // Available değişmez; locked düşer.
         $this->record($wallet, $type, '0', $reference);
