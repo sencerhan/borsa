@@ -30,7 +30,45 @@ class MarketSettingService
         }
 
         if (array_key_exists('is_active', $data)) {
-            $market->is_active = $data['is_active'];
+            $market->is_active = (bool)$data['is_active'];
+        }
+
+        if (array_key_exists('bot_active', $data)) {
+            $market->bot_active = (bool)$data['bot_active'];
+        }
+
+        if (isset($data['bot_reference_price'])) {
+            $market->bot_reference_price = $data['bot_reference_price'];
+        }
+
+        if (isset($data['bot_volatility'])) {
+            // Yüzde girdisini decimal değere çevirerek kaydet (%0.5 -> 0.005)
+            $market->bot_volatility = BigMath::div($data['bot_volatility'], '100');
+        }
+
+        if (isset($data['bot_spread'])) {
+            // Yüzde girdisini decimal değere çevirerek kaydet (%1.0 -> 0.01)
+            $market->bot_spread = BigMath::div($data['bot_spread'], '100');
+        }
+
+        if (isset($data['bot_min_qty'])) {
+            $market->bot_min_qty = $data['bot_min_qty'];
+        }
+
+        if (isset($data['bot_max_qty'])) {
+            $market->bot_max_qty = $data['bot_max_qty'];
+        }
+
+        if (isset($data['bot_interval'])) {
+            $market->bot_interval = (int)$data['bot_interval'];
+        }
+
+        if (array_key_exists('simulator_active', $data)) {
+            $market->simulator_active = (bool)$data['simulator_active'];
+        }
+
+        if (isset($data['simulator_interval'])) {
+            $market->simulator_interval = (int)$data['simulator_interval'];
         }
 
         $market->save();

@@ -33,7 +33,7 @@ class OrderService
      */
     public function place(User $user, PlaceOrderData $data): Order
     {
-        return DB::transaction(function () use ($user, $data) {
+        $order = DB::transaction(function () use ($user, $data) {
             /** @var Market|null $market */
             $market = Market::whereKey($data->marketId)->lockForUpdate()->first();
 
@@ -69,6 +69,10 @@ class OrderService
 
             return $order->refresh();
         });
+
+        event(new \App\Events\OrderBookUpdated($order->market));
+
+        return $order;
     }
 
     /**
@@ -76,7 +80,7 @@ class OrderService
      */
     public function cancel(User $user, int $orderId): Order
     {
-        return DB::transaction(function () use ($user, $orderId) {
+        $order = DB::transaction(function () use ($user, $orderId) {
             /** @var Order|null $order */
             $order = Order::whereKey($orderId)->lockForUpdate()->first();
 
@@ -98,6 +102,10 @@ class OrderService
 
             return $order;
         });
+
+        event(new \App\Events\OrderBookUpdated($order->market));
+
+        return $order;
     }
 
     /**

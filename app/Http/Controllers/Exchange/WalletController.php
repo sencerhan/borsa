@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Exchange;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Exchange\StoreDepositRequest;
 use App\Http\Requests\Exchange\StoreWithdrawalRequest;
 use App\Models\Asset;
-use App\Services\DepositService;
+use App\Services\DepositVerificationService;
 use App\Services\MarketDataService;
 use App\Services\WalletService;
 use App\Services\WithdrawalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,9 +19,9 @@ class WalletController extends Controller
 {
     public function __construct(
         private readonly MarketDataService $marketData,
-        private readonly DepositService $deposits,
         private readonly WithdrawalService $withdrawals,
         private readonly WalletService $wallets,
+        private readonly DepositVerificationService $deposits,
     ) {}
 
     /**
@@ -37,28 +37,21 @@ class WalletController extends Controller
             $this->wallets->getOrCreate($user->id, $asset->symbol);
         }
 
+        // Sayfa açılışında zincirden gelen yeni yatırmaları doğrula (daemon çalışmasa da
+        // kullanıcı cüzdanını her açtığında yatırmaları anında yansır). Zincir erişilemezse
+        // sayfa yine de açılır.
+        try {
+            $this->deposits->scanUser($user->id);
+        } catch (\Throwable $e) {
+            Log::warning('Cüzdan açılışında yatırma taraması başarısız: '.$e->getMessage());
+        }
+
         return Inertia::render('wallet/Index', [
             'assets' => $assets,
             'wallets' => fn () => $this->marketData->userWallets($user),
             'deposits' => fn () => $user->deposits()->latest('id')->limit(20)->get(),
             'withdrawals' => fn () => $user->withdrawals()->latest('id')->limit(20)->get(),
         ]);
-    }
-
-    /**
-     * Para yatırma talebi (simüle otomatik işlenir).
-     */
-    public function deposit(StoreDepositRequest $request): RedirectResponse
-    {
-        $this->deposits->request(
-            $request->user(),
-            $request->string('asset')->value(),
-            $request->string('amount')->value(),
-        );
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('exchange.flash.deposit_requested')]);
-
-        return back();
     }
 
     /**

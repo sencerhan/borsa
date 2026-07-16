@@ -28,8 +28,8 @@ class DepositService
             'reference' => 'DEP-'.Str::upper(Str::random(12)),
         ]);
 
-        // Yanıt gönderildikten sonra otomatik işlenir (worker gerektirmez)
-        ProcessDepositJob::dispatch($deposit->id)->afterResponse();
+        // 5 saniye gecikmeyle kuyruğa ekle (otonom olarak işlenmesi için)
+        ProcessDepositJob::dispatch($deposit->id)->delay(now()->addSeconds(5));
 
         return $deposit;
     }
@@ -48,6 +48,7 @@ class DepositService
             $this->wallets->credit($deposit->user_id, $deposit->asset, $deposit->amount, LedgerEntryType::Deposit, $deposit);
 
             $deposit->status = DepositStatus::Completed;
+            $deposit->txid = '0x' . bin2hex(random_bytes(32));
             $deposit->processed_at = now();
             $deposit->save();
         });

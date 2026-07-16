@@ -32,10 +32,10 @@ defineOptions({
     },
 });
 
-const depositForm = useForm({
-    asset: props.assets[0]?.symbol ?? '',
-    amount: '',
-});
+// Yatırma artık tutar girişi ile yapılmaz; kullanıcı sadece hangi varlığın
+// adresini göreceğini seçer. Bakiye, adrese gelen gerçek zincir transferi
+// doğrulandığında otomatik eklenir.
+const depositAsset = ref(props.assets[0]?.symbol ?? '');
 
 const withdrawForm = useForm({
     asset: props.assets[0]?.symbol ?? '',
@@ -57,9 +57,9 @@ function networkFor(symbol: string): string | null {
 
 // Seçili varlığın yatırma adresi ve ağı
 const depositAddress = computed(
-    () => walletFor(depositForm.asset)?.deposit_address ?? null,
+    () => walletFor(depositAsset.value)?.deposit_address ?? null,
 );
-const depositNetwork = computed(() => networkFor(depositForm.asset));
+const depositNetwork = computed(() => networkFor(depositAsset.value));
 
 const copied = ref(false);
 
@@ -79,13 +79,6 @@ async function copyAddress(): Promise<void> {
 
 function statusLabel(status: string): string {
     return t(`transfer_status.${status}`);
-}
-
-function submitDeposit(): void {
-    depositForm.post('/wallet/deposit', {
-        preserveScroll: true,
-        onSuccess: () => depositForm.reset('amount'),
-    });
 }
 
 function submitWithdraw(): void {
@@ -175,17 +168,14 @@ const totalAssets = computed(() => props.assets);
                     }}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form
-                        class="flex flex-col gap-3"
-                        @submit.prevent="submitDeposit"
-                    >
+                    <div class="flex flex-col gap-3">
                         <div class="grid gap-1.5">
                             <Label for="dep-asset">{{
                                 t('common.asset')
                             }}</Label>
                             <select
                                 id="dep-asset"
-                                v-model="depositForm.asset"
+                                v-model="depositAsset"
                                 class="h-9 rounded-md border bg-transparent px-3 text-sm"
                             >
                                 <option
@@ -196,7 +186,6 @@ const totalAssets = computed(() => props.assets);
                                     {{ a.symbol }} — {{ a.name }}
                                 </option>
                             </select>
-                            <InputError :message="depositForm.errors.asset" />
                         </div>
 
                         <!-- Yatırma adresi -->
@@ -228,7 +217,7 @@ const totalAssets = computed(() => props.assets);
                             <p class="text-xs text-muted-foreground">
                                 {{
                                     t('wallet.network_warning', {
-                                        asset: depositForm.asset,
+                                        asset: depositAsset,
                                         network: depositNetwork
                                             ? t('wallet.network_paren', {
                                                   network: depositNetwork,
@@ -239,25 +228,13 @@ const totalAssets = computed(() => props.assets);
                             </p>
                         </div>
 
-                        <div class="grid gap-1.5">
-                            <Label for="dep-amount">{{
-                                t('wallet.amount_sim')
-                            }}</Label>
-                            <Input
-                                id="dep-amount"
-                                v-model="depositForm.amount"
-                                type="number"
-                                step="any"
-                                min="0"
-                                placeholder="0.00"
-                                required
-                            />
-                            <InputError :message="depositForm.errors.amount" />
-                        </div>
-                        <Button type="submit" :disabled="depositForm.processing"
-                            >{{ t('wallet.deposit_btn') }}</Button
+                        <!-- Gerçek zincir transferi bilgisi -->
+                        <p
+                            class="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
                         >
-                    </form>
+                            {{ t('wallet.deposit_onchain_note') }}
+                        </p>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -322,6 +299,8 @@ const totalAssets = computed(() => props.assets);
                                 :message="withdrawForm.errors.address"
                             />
                         </div>
+                        <!-- Domain hataları (ör. yetersiz bakiye) burada görünür -->
+                        <InputError :message="withdrawForm.errors.exchange" />
                         <Button
                             type="submit"
                             variant="outline"

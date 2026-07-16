@@ -10,12 +10,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $user_id
  * @property string $asset
  * @property string|null $deposit_address
+ * @property string|null $deposit_secret
  * @property string $available
  * @property string $locked
  */
 class Wallet extends Model
 {
-    protected $fillable = ['user_id', 'asset', 'deposit_address', 'available', 'locked'];
+    protected $fillable = ['user_id', 'asset', 'deposit_address', 'deposit_secret', 'available', 'locked'];
+
+    // Özel anahtar asla API/JSON yanıtına sızmamalı.
+    protected $hidden = ['deposit_secret'];
 
     protected function casts(): array
     {

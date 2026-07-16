@@ -14,7 +14,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('exchange/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
     // Cüzdan (yatırma/çekme)
+    // NOT: Yatırma artık kullanıcı tarafından tutar girilerek yapılmaz. Kullanıcı,
+    // cüzdan sayfasındaki deposit adresine zincir üzerinden gerçek transfer yapar;
+    // bakiye ancak DepositVerificationService transferi doğrulayınca eklenir.
     Route::get('wallet', [WalletController::class, 'index'])->name('wallet.index');
-    Route::post('wallet/deposit', [WalletController::class, 'deposit'])->name('wallet.deposit');
     Route::post('wallet/withdraw', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
 });

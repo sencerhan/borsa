@@ -154,6 +154,8 @@ class MatchingEngineService
             'seller_fee' => $sellerFee,
         ]);
 
+        event(new \App\Events\TradeExecuted($trade));
+
         // Satıcının kilitli base'i borsadan çıkar → alıcıya (komisyon düşülmüş) base
         $this->wallets->debitLocked($sellOrder->user_id, $base, $fillQty, LedgerEntryType::Trade, $trade);
         $this->wallets->credit($buyOrder->user_id, $base, $buyerReceivesBase, LedgerEntryType::Trade, $trade);

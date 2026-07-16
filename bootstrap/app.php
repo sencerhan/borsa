@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -24,7 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocale::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
+            // Preload "Link" header'ini sinirla: tum build asset'leri listelenince
+            // header nginx'in default fastcgi buffer'ini asip 502'ye yol aciyordu.
+            AddLinkHeadersForPreloadedAssets::using(5),
         ]);
 
         $middleware->alias([

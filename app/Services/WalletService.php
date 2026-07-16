@@ -17,30 +17,46 @@ use Illuminate\Database\Eloquent\Model;
  */
 class WalletService
 {
-    /** Cüzdanı oluşturur (yoksa) — kilit almadan. Oluşturulurken simüle yatırma adresi üretilir. */
+    /** Cüzdanı oluşturur (yoksa) — kilit almadan. Oluşturulurken yatırma adresi (ve gerekiyorsa anahtarı) üretilir. */
     public function getOrCreate(int $userId, string $asset): Wallet
     {
         return Wallet::firstOrCreate(
             ['user_id' => $userId, 'asset' => $asset],
-            ['available' => '0', 'locked' => '0', 'deposit_address' => $this->generateDepositAddress($asset)],
+            ['available' => '0', 'locked' => '0'] + $this->generateDepositCredentials($asset),
         );
     }
 
     /**
-     * Varlığın ağına göre simüle bir yatırma adresi üretir (blokzincir yok).
+     * Varlığın ağına göre yatırma adresi (ve gerekiyorsa şifreli özel anahtar) üretir.
+     *
+     * @return array{deposit_address: string, deposit_secret?: string}
      */
-    private function generateDepositAddress(string $asset): string
+    private function generateDepositCredentials(string $asset): array
     {
         $network = Asset::where('symbol', $asset)->value('network');
 
         return match ($network) {
-            // TRON (TRC20) benzeri: 'T' + 33 base58 karakter
-            'TRC20' => 'T'.$this->randomString(33, '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'),
+            // BK Chain (BitKuruş): borsanın kontrol ettiği Ed25519 anahtar çifti.
+            // Public key = adres; secret key şifreli saklanır (gerçek çekim imzası için).
+            'BK Chain' => $this->bkCredentials(),
+            // TRON (TRC20): base58check biçiminde geçerli 'T...' adres (TronGrid ile sorgulanabilir)
+            'TRC20' => ['deposit_address' => \App\Support\TronAddress::generate()],
             // EVM benzeri: '0x' + 40 hex karakter
-            'ERC20', 'BEP20' => '0x'.$this->randomString(40, '0123456789abcdef'),
-            // Yerel BK ağı
-            default => 'bk1'.$this->randomString(38, '023456789acdefghjklmnpqrstuvwxyz'),
+            'ERC20', 'BEP20' => ['deposit_address' => '0x'.$this->randomString(40, '0123456789abcdef')],
+            // Bilinmeyen ağ: yalnızca rastgele bir adres
+            default => ['deposit_address' => bin2hex(random_bytes(32))],
         };
+    }
+
+    /** BK Chain için anahtar çifti üretir; özel anahtarı şifreleyerek döndürür. */
+    private function bkCredentials(): array
+    {
+        $keypair = \App\Support\BkKeypair::generate();
+
+        return [
+            'deposit_address' => $keypair['address'],
+            'deposit_secret' => \Illuminate\Support\Facades\Crypt::encryptString($keypair['secret']),
+        ];
     }
 
     /** Belirtilen alfabeden rastgele karakter dizisi üretir. */
@@ -64,6 +80,8 @@ class WalletService
         $wallet->available = BigMath::add($wallet->available, $amount);
         $wallet->save();
 
+        event(new \App\Events\WalletUpdated($wallet));
+
         $this->record($wallet, $type, $amount, $reference);
 
         return $wallet;
@@ -81,6 +99,8 @@ class WalletService
 
         $wallet->available = BigMath::sub($wallet->available, $amount);
         $wallet->save();
+
+        event(new \App\Events\WalletUpdated($wallet));
 
         $this->record($wallet, $type, BigMath::mul($amount, '-1'), $reference);
 
@@ -100,6 +120,8 @@ class WalletService
         $wallet->available = BigMath::sub($wallet->available, $amount);
         $wallet->locked = BigMath::add($wallet->locked, $amount);
         $wallet->save();
+
+        event(new \App\Events\WalletUpdated($wallet));
 
         $this->record($wallet, LedgerEntryType::Lock, BigMath::mul($amount, '-1'), $reference);
 
@@ -121,6 +143,8 @@ class WalletService
         $wallet->available = BigMath::add($wallet->available, $unlockAmount);
         $wallet->save();
 
+        event(new \App\Events\WalletUpdated($wallet));
+
         $this->record($wallet, $type, $unlockAmount, $reference);
 
         return $wallet;
@@ -138,6 +162,8 @@ class WalletService
 
         $wallet->locked = BigMath::sub($wallet->locked, $amount);
         $wallet->save();
+
+        event(new \App\Events\WalletUpdated($wallet));
 
         // Available değişmez; locked düşer.
         $this->record($wallet, $type, '0', $reference);

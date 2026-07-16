@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    // BitKuruş (BK$) zinciri — yatırma doğrulaması için düğüm API'si.
+    'bitkurush' => [
+        'base_url' => env('BITKURUS_API_URL', 'https://bitkurush.org'),
+        'activity_limit' => (int) env('BITKURUS_ACTIVITY_LIMIT', 50),
+    ],
+
+    // Tron / TronGrid — USDT (TRC20) yatırma doğrulaması için.
+    'trongrid' => [
+        'base_url' => env('TRONGRID_API_URL', 'https://api.trongrid.io'),
+        'api_key' => env('TRONGRID_API_KEY'),
+        // Ana ağ USDT (TRC20) sözleşmesi.
+        'usdt_contract' => env('TRON_USDT_CONTRACT', 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'),
+        'limit' => (int) env('TRONGRID_LIMIT', 50),
+    ],
+
 ];

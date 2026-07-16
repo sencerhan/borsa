@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Withdrawal extends Model
 {
-    protected $fillable = ['user_id', 'asset', 'amount', 'address', 'status', 'reference', 'processed_at'];
+    protected $fillable = ['user_id', 'asset', 'amount', 'address', 'status', 'reference', 'txid', 'processed_at'];
 
     protected function casts(): array
     {
