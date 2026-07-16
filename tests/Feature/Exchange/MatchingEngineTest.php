@@ -179,4 +179,52 @@ class MatchingEngineTest extends TestCase
         $this->assertBalance('1000', $this->wallet($seller, 'BK$')->available);
         $this->assertBalance('0', $this->wallet($seller, 'BK$')->locked);
     }
+
+    public function test_user_cannot_self_trade(): void
+    {
+        $market = $this->makeMarket();
+        $user = User::factory()->create();
+        $this->fund($user, 'BK$', '1000');
+        $this->fund($user, 'USDT', '30');
+
+        // Aynı kullanıcı: satış (maker) + kesişen alış (taker) → eşleşMEmeli (STP)
+        $sell = $this->orders()->place($user, new PlaceOrderData($market->id, OrderSide::Sell, OrderType::Limit, price: '0.03', quantity: '1000'));
+        $buy = $this->orders()->place($user, new PlaceOrderData($market->id, OrderSide::Buy, OrderType::Limit, price: '0.03', quantity: '1000'));
+
+        $this->assertSame(0, Trade::count(), 'Kullanıcı kendi emriyle eşleşmemeli');
+        $this->assertSame(OrderStatus::Open, $sell->fresh()->status);
+        $this->assertSame(OrderStatus::Open, $buy->fresh()->status);
+        // İki emir de fonları kilitli tutar
+        $this->assertBalance('1000', $this->wallet($user, 'BK$')->locked);
+        $this->assertBalance('30', $this->wallet($user, 'USDT')->locked);
+    }
+
+    public function test_market_buy_against_only_own_orders_throws_empty_book(): void
+    {
+        $market = $this->makeMarket();
+        $user = User::factory()->create();
+        $this->fund($user, 'BK$', '1000');
+        $this->fund($user, 'USDT', '100');
+
+        $this->orders()->place($user, new PlaceOrderData($market->id, OrderSide::Sell, OrderType::Limit, price: '0.03', quantity: '1000'));
+
+        // Karşı tarafta yalnızca kendi emri var → boş defter hatası
+        $this->expectException(InvalidOrderException::class);
+        $this->orders()->place($user, new PlaceOrderData($market->id, OrderSide::Buy, OrderType::Market, quoteAmount: '30'));
+    }
+
+    public function test_order_quantity_and_price_truncated_to_market_scale(): void
+    {
+        $market = $this->makeMarket(); // price_scale 6, size_scale 2
+        $seller = User::factory()->create();
+        $this->fund($seller, 'BK$', '1000');
+
+        // Fazla ondalık: miktar 2 haneye, fiyat 6 haneye kesilir
+        $order = $this->orders()->place($seller, new PlaceOrderData($market->id, OrderSide::Sell, OrderType::Limit, price: '0.0300009', quantity: '10.129'));
+
+        $this->assertBalance('10.12', $order->quantity);
+        $this->assertBalance('0.030000', $order->price);
+        // Kilitlenen base de kesilmiş miktar kadar
+        $this->assertBalance('10.12', $this->wallet($seller, 'BK$')->locked);
+    }
 }

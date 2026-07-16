@@ -29,21 +29,25 @@ class MarketController extends Controller
      */
     public function update(UpdateMarketRequest $request, Market $market): RedirectResponse
     {
-        $this->settings->update($market, [
-            'maker_fee' => $request->string('maker_fee')->value(),
-            'taker_fee' => $request->string('taker_fee')->value(),
-            'min_order_size' => $request->string('min_order_size')->value(),
-            'is_active' => $request->boolean('is_active'),
-            'bot_active' => $request->boolean('bot_active'),
-            'bot_reference_price' => $request->string('bot_reference_price')->value(),
-            'bot_volatility' => $request->string('bot_volatility')->value(),
-            'bot_spread' => $request->string('bot_spread')->value(),
-            'bot_min_qty' => $request->string('bot_min_qty')->value(),
-            'bot_max_qty' => $request->string('bot_max_qty')->value(),
-            'bot_interval' => $request->integer('bot_interval'),
-            'simulator_active' => $request->boolean('simulator_active'),
-            'simulator_interval' => $request->integer('simulator_interval'),
-        ]);
+        // Yalnızca istekte GERÇEKTEN gönderilen alanları güncelle (kısmi güncelleme desteği).
+        $data = [];
+        foreach (['maker_fee', 'taker_fee', 'min_order_size', 'bot_reference_price', 'bot_volatility', 'bot_spread', 'bot_min_qty', 'bot_max_qty'] as $key) {
+            if ($request->has($key)) {
+                $data[$key] = $request->string($key)->value();
+            }
+        }
+        foreach (['is_active', 'bot_active', 'simulator_active'] as $key) {
+            if ($request->has($key)) {
+                $data[$key] = $request->boolean($key);
+            }
+        }
+        foreach (['bot_interval', 'simulator_interval'] as $key) {
+            if ($request->has($key)) {
+                $data[$key] = $request->integer($key);
+            }
+        }
+
+        $this->settings->update($market, $data);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('exchange.flash.market_updated')]);
 

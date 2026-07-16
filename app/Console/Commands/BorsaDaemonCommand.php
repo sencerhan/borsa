@@ -6,6 +6,7 @@ use App\Models\Market;
 use App\Services\Admin\MarketBotService;
 use App\Services\Admin\TransactionSimulatorService;
 use App\Services\DepositVerificationService;
+use App\Services\WithdrawalService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -20,7 +21,8 @@ class BorsaDaemonCommand extends Command
     public function handle(
         MarketBotService $botService,
         TransactionSimulatorService $simulatorService,
-        DepositVerificationService $depositVerifier
+        DepositVerificationService $depositVerifier,
+        WithdrawalService $withdrawals
     ): int {
         $this->components->info('BitKuruş Borsa Otonom Daemon Başlatılıyor...');
         $this->components->info('Çıkmak için CTRL+C tuşlarına basın.');
@@ -43,6 +45,8 @@ class BorsaDaemonCommand extends Command
         $lastSimulatorRun = 0;
         $lastDepositScan = 0;
         $depositScanInterval = 20; // sn: zincir yatırma taraması sıklığı
+        $lastWithdrawalReconcile = 0;
+        $withdrawalReconcileInterval = 30; // sn: takılı çekim mutabakatı sıklığı
 
         $delay = (int) $this->option('delay');
 
@@ -60,6 +64,19 @@ class BorsaDaemonCommand extends Command
                     Log::error('Yatırma tarama hatası: '.$e->getMessage());
                 }
                 $lastDepositScan = $now;
+            }
+
+            // 0b. Yarıda kalan çekimleri zincir durumuna göre çöz (tamamla/iade)
+            if ($now - $lastWithdrawalReconcile >= $withdrawalReconcileInterval) {
+                try {
+                    $resolved = $withdrawals->reconcile();
+                    if ($resolved > 0) {
+                        $this->line("<info>[MUTABAKAT]</info> {$resolved} takılı çekim çözüldü.");
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('Çekim mutabakat hatası: '.$e->getMessage());
+                }
+                $lastWithdrawalReconcile = $now;
             }
 
             // Aktif marketleri getir

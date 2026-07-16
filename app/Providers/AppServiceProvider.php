@@ -20,6 +20,19 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Services\Chain\BkChainClient::class, fn () => new \App\Services\Chain\BkChainClient(
             (string) config('services.bitkurush.base_url'),
         ));
+
+        // Tron zincir istemcisi + USDT çekim servisi (config'den).
+        $this->app->bind(\App\Services\Chain\TronChainClient::class, fn () => new \App\Services\Chain\TronChainClient(
+            (string) config('services.trongrid.base_url'),
+            config('services.trongrid.api_key'),
+        ));
+
+        $this->app->bind(\App\Services\Chain\TronWithdrawalService::class, fn ($app) => new \App\Services\Chain\TronWithdrawalService(
+            $app->make(\App\Services\Chain\TronChainClient::class),
+            (string) config('services.trongrid.usdt_contract'),
+            (int) config('services.trongrid.fee_limit', 20000000),
+            (int) config('services.trongrid.usdt_decimals', 6),
+        ));
     }
 
     /**

@@ -151,6 +151,7 @@ return [
 
     'transfer_status' => [
         'pending' => 'Bekliyor',
+        'processing' => 'İşleniyor',
         'completed' => 'Tamamlandı',
         'failed' => 'Başarısız',
     ],

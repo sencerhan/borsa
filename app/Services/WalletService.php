@@ -39,8 +39,8 @@ class WalletService
             // BK Chain (BitKuruş): borsanın kontrol ettiği Ed25519 anahtar çifti.
             // Public key = adres; secret key şifreli saklanır (gerçek çekim imzası için).
             'BK Chain' => $this->bkCredentials(),
-            // TRON (TRC20): base58check biçiminde geçerli 'T...' adres (TronGrid ile sorgulanabilir)
-            'TRC20' => ['deposit_address' => \App\Support\TronAddress::generate()],
+            // TRON (TRC20): borsanın kontrol ettiği secp256k1 anahtar çifti (gerçek custody).
+            'TRC20' => $this->tronCredentials(),
             // EVM benzeri: '0x' + 40 hex karakter
             'ERC20', 'BEP20' => ['deposit_address' => '0x'.$this->randomString(40, '0123456789abcdef')],
             // Bilinmeyen ağ: yalnızca rastgele bir adres
@@ -56,6 +56,17 @@ class WalletService
         return [
             'deposit_address' => $keypair['address'],
             'deposit_secret' => \Illuminate\Support\Facades\Crypt::encryptString($keypair['secret']),
+        ];
+    }
+
+    /** TRON için secp256k1 anahtar çifti üretir; özel anahtarı şifreleyerek döndürür. */
+    private function tronCredentials(): array
+    {
+        $keypair = \App\Support\TronCrypto::generate();
+
+        return [
+            'deposit_address' => $keypair['address_base58'],
+            'deposit_secret' => \Illuminate\Support\Facades\Crypt::encryptString($keypair['private_key']),
         ];
     }
 

@@ -41,25 +41,7 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
             ],
         );
-
-        // Admin kullanıcı (is_admin mass-assignable değil → forceFill)
-        $admin = User::factory()->create(['name' => 'Admin', 'email' => 'admin@example.com']);
+        $admin = User::factory()->create(['name' => 'Admin', 'email' => 'admin@sencerhan.com']);
         $admin->forceFill(['is_admin' => true])->save();
-
-        // Test kullanıcıları
-        $test = User::factory()->create(['name' => 'Test User', 'email' => 'test@example.com']);
-        $maker = User::factory()->create(['name' => 'Piyasa Yapıcı', 'email' => 'maker@example.com']);
-
-        // Başlangıç bakiyeleri
-        foreach ([$admin, $test, $maker] as $user) {
-            $wallets->credit($user->id, 'USDT', '100000', LedgerEntryType::Deposit);
-            $wallets->credit($user->id, 'BK$', '1000000', LedgerEntryType::Deposit);
-        }
-
-        // Örnek emir defteri (maker kullanıcısından limit emirler)
-        $orders->place($maker, new PlaceOrderData($market->id, OrderSide::Sell, OrderType::Limit, price: '0.032000', quantity: '5000'));
-        $orders->place($maker, new PlaceOrderData($market->id, OrderSide::Sell, OrderType::Limit, price: '0.031000', quantity: '3000'));
-        $orders->place($maker, new PlaceOrderData($market->id, OrderSide::Buy, OrderType::Limit, price: '0.029000', quantity: '4000'));
-        $orders->place($maker, new PlaceOrderData($market->id, OrderSide::Buy, OrderType::Limit, price: '0.028000', quantity: '6000'));
     }
 }

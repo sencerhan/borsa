@@ -6,9 +6,11 @@ use App\Enums\DepositStatus;
 use App\Enums\WithdrawalStatus;
 use App\Exceptions\InsufficientBalanceException;
 use App\Models\User;
+use App\Jobs\ProcessWithdrawalJob;
 use App\Services\DepositService;
 use App\Services\WithdrawalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\Concerns\ExchangeTestHelpers;
 use Tests\TestCase;
 
@@ -44,21 +46,37 @@ class WalletFlowTest extends TestCase
         $this->assertBalance('500', $this->wallet($user, 'USDT')->available);
     }
 
-    public function test_withdrawal_reserves_funds_immediately_and_completes(): void
+    public function test_withdrawal_reserves_funds_immediately(): void
     {
+        Queue::fake(); // işlemeyi (job) ayrı tut; sadece rezerveyi ölç
+        $this->makeMarket();
+        $user = User::factory()->create();
+        $this->fund($user, 'USDT', '1000');
+
+        app(WithdrawalService::class)->request($user, 'USDT', '400', 'TR3LGiGDFTnKkbXL64jTH1DAvTpGmhxeQk');
+
+        // Fon talep anında düşülür (rezerve) ve işleme kuyruğa alınır
+        $this->assertBalance('600', $this->wallet($user, 'USDT')->available);
+        Queue::assertPushed(ProcessWithdrawalJob::class);
+    }
+
+    public function test_withdrawal_refunds_when_chain_send_cannot_proceed(): void
+    {
+        Queue::fake();
         $this->makeMarket();
         $user = User::factory()->create();
         $this->fund($user, 'USDT', '1000');
 
         $withdrawals = app(WithdrawalService::class);
-        $withdrawal = $withdrawals->request($user, 'USDT', '400');
-
-        // Fon talep anında düşülür
+        // Adressiz USDT çekimi → ödeme hiç yayınlanamaz → güvenli iade
+        $withdrawal = $withdrawals->request($user, 'USDT', '400', null);
         $this->assertBalance('600', $this->wallet($user, 'USDT')->available);
 
         $withdrawals->process($withdrawal->id);
-        $this->assertSame(WithdrawalStatus::Completed, $withdrawal->fresh()->status);
-        $this->assertBalance('600', $this->wallet($user, 'USDT')->available);
+
+        // Ödeme yayınlanmadığı için fon iade edilir, çekim başarısız
+        $this->assertSame(WithdrawalStatus::Failed, $withdrawal->fresh()->status);
+        $this->assertBalance('1000', $this->wallet($user, 'USDT')->available);
     }
 
     public function test_withdrawal_over_balance_throws(): void

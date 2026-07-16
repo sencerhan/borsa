@@ -7,11 +7,15 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * Çekim talebini otomatik sonlandırır (simüle otomasyon).
+ * Çekimi zincire gönderir. Çift gönderimi önlemek için otomatik retry KAPALI (tries=1);
+ * yarıda kalan çekimler `withdrawals:reconcile` ile zincir durumuna göre çözülür.
  */
 class ProcessWithdrawalJob implements ShouldQueue
 {
     use Queueable;
+
+    /** Çift zincir gönderimi riskine karşı yeniden deneme yok. */
+    public int $tries = 1;
 
     public function __construct(public int $withdrawalId) {}
 

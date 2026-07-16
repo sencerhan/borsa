@@ -76,7 +76,9 @@ class MatchingEngineService
             ->active()
             ->where('market_id', $market->id)
             ->where('side', $taker->side->opposite()->value)
-            ->where('id', '!=', $taker->id);
+            ->where('id', '!=', $taker->id)
+            // Self-trade önleme (STP): kullanıcı kendi emriyle eşleşemez
+            ->where('user_id', '!=', $taker->user_id);
 
         if ($taker->side === OrderSide::Buy) {
             // Alıcı için en ucuz satış önce

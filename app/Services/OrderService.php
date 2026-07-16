@@ -45,7 +45,7 @@ class OrderService
                 throw MarketInactiveException::make();
             }
 
-            [$lockAsset, $lockAmount, $quantity, $quoteAmount, $price] = $this->prepare($market, $data);
+            [$lockAsset, $lockAmount, $quantity, $quoteAmount, $price] = $this->prepare($user, $market, $data);
 
             $order = Order::create([
                 'user_id' => $user->id,
@@ -114,13 +114,13 @@ class OrderService
      * @return array{0:string,1:string,2:string,3:string|null,4:string|null}
      *                                                                       [lockAsset, lockAmount, quantity, quoteAmount, price]
      */
-    private function prepare(Market $market, PlaceOrderData $data): array
+    private function prepare(User $user, Market $market, PlaceOrderData $data): array
     {
         if ($data->type === OrderType::Limit) {
             return $this->prepareLimit($market, $data);
         }
 
-        return $this->prepareMarket($market, $data);
+        return $this->prepareMarket($user, $market, $data);
     }
 
     /**
@@ -128,8 +128,9 @@ class OrderService
      */
     private function prepareLimit(Market $market, PlaceOrderData $data): array
     {
-        $price = $data->price ?? '0';
-        $quantity = $data->quantity ?? '0';
+        // Fiyat ve miktarı market hassasiyetine (tick/lot) indirger
+        $price = $this->scaleDown($data->price ?? '0', $market->price_scale);
+        $quantity = $this->scaleDown($data->quantity ?? '0', $market->size_scale);
 
         if (! BigMath::isPositive($price) || ! BigMath::isPositive($quantity)) {
             throw InvalidOrderException::make(__('exchange.errors.invalid_price_quantity'));
@@ -149,9 +150,9 @@ class OrderService
     /**
      * @return array{0:string,1:string,2:string,3:string|null,4:string|null}
      */
-    private function prepareMarket(Market $market, PlaceOrderData $data): array
+    private function prepareMarket(User $user, Market $market, PlaceOrderData $data): array
     {
-        $this->assertBookNotEmpty($market, $data->side);
+        $this->assertBookNotEmpty($user, $market, $data->side);
 
         if ($data->side === OrderSide::Buy) {
             $quoteAmount = $data->quoteAmount ?? '0';
@@ -163,7 +164,7 @@ class OrderService
             return [$market->quote_asset, $quoteAmount, '0', $quoteAmount, null];
         }
 
-        $quantity = $data->quantity ?? '0';
+        $quantity = $this->scaleDown($data->quantity ?? '0', $market->size_scale);
         if (! BigMath::isPositive($quantity)) {
             throw InvalidOrderException::make(__('exchange.errors.invalid_price_quantity'));
         }
@@ -181,13 +182,20 @@ class OrderService
         }
     }
 
-    /** Market emir için karşı tarafta eşleşecek emir bulunmalı. */
-    private function assertBookNotEmpty(Market $market, OrderSide $side): void
+    /** Değeri verilen ondalık haneye (market tick/lot) keserek indirger. */
+    private function scaleDown(string $value, int $scale): string
+    {
+        return bcadd($value, '0', max(0, $scale));
+    }
+
+    /** Market emir için karşı tarafta (kendi emri hariç) eşleşecek emir bulunmalı. */
+    private function assertBookNotEmpty(User $user, Market $market, OrderSide $side): void
     {
         $hasCounterparty = Order::query()
             ->active()
             ->where('market_id', $market->id)
             ->where('side', $side->opposite()->value)
+            ->where('user_id', '!=', $user->id) // self-trade önleme
             ->exists();
 
         if (! $hasCounterparty) {

@@ -5,6 +5,7 @@ namespace App\Enums;
 enum WithdrawalStatus: string
 {
     case Pending = 'pending';
+    case Processing = 'processing'; // zincire gönderiliyor (claim edilmiş)
     case Completed = 'completed';
     case Failed = 'failed';
 
